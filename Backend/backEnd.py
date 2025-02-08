@@ -29,23 +29,10 @@ def index():
 
 @app.route('/add_marker', methods=['POST'])
 def add_marker():
-    title = request.form.get('title')
-    lat = request.form.get('lat')
-    lng = request.form.get('lng')
-    if title and lat and lng:
-        try:
-            marker = {
-                'title': title,
-                'lat': float(lat),
-                'lng': float(lng),
-                # You can add more fields here if needed.
-            }
-            db.collection('markers').add(marker)
-        except Exception as e:
-            print("Error adding marker:", e)
+    gm.add_marker(request.form['name'], request.form['lat'], request.form['lng'])
     return redirect(url_for('index'))
 
-@app.route('/get_marker/<marker_id>')
+@app.route('/get_marker/<marker_id>', methods=['GET'])
 def get_marker(marker_id):
     # Query Firestore for the marker with the given ID.
     doc_ref = db.collection('markers').document(marker_id)
@@ -57,10 +44,40 @@ def get_marker(marker_id):
     else:
         return jsonify({'error': 'Marker not found'}), 404
     
-@app.route('delete_marker/<name,lat,lng>')
+@app.route('delete_marker/<name,lat,lng>', methods=['POST'])
 def delete_marker(name,lat,lng):
     gm.delete_marker(name,lat,lng)
     return redirect(url_for('index'))
+
+@app.route('getMarkers', methods=['GET'])
+def getMarkers():
+    return jsonify(gm.getMarkers())
+
+@app.route('/getProfileInfo/<email>', methods=['GET'])
+def getProfileInfo(email):
+    """
+    Retrieves user profile information based on their email.
+
+    Parameters:
+        email (str): The email of the user.
+
+    Returns:
+        JSON response with user profile data or an error message.
+    """
+    users_ref = db.collection('users') 
+    query = users_ref.where('email', '==', email).stream()
+
+    user_data = None
+    for doc in query:
+        user_data = doc.to_dict()
+        user_data["id"] = doc.id  
+        break  
+
+    if user_data:
+        return jsonify(user_data)
+    else:
+        return jsonify({'error': 'User not found'}), 404
+
 
 if __name__ == '__main__':
     app.run(debug=True)
