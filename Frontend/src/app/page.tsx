@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import MapPage from './pages/MapPage';
 
+
 const Home: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
 
