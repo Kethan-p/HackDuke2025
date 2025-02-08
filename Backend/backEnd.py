@@ -27,6 +27,8 @@ def index():
 
     return render_template('index.html', markers=markers)
 
+    
+
 @app.route('/add_marker', methods=['POST'])
 def add_marker():
     gm.add_marker(request.form['name'], request.form['lat'], request.form['lng'])
