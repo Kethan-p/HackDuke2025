@@ -25,7 +25,7 @@ def clean_text(text):
 
 def check_invasive_plant(plant_name, lat, long):
     try:
-        prompt = f"Is the plant '{plant_name}' at these coordinates '{lat}' , '{long}' an invasive species? If yes, return 'true' and list its harmful effects. If no, return 'false' and an empty string."
+        prompt = f"Is the plant '{plant_name}' at these coordinates '{lat}' , '{long}' an invasive species? If yes, return 'true' and list its harmful effects. If no, return 'false' and basic information about the plant. Mention the location of the plant in your response, but do not mention anything regarding coordinates. "
 
         client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY")
@@ -74,5 +74,5 @@ def check_invasive_plant(plant_name, lat, long):
 if __name__ == "__main__":
     plant_name = "Lonicera japonica"  # Replace with any plant name
     # is_invasive, harmful_effects =
-    ret = check_invasive_plant(plant_name)
+    ret = check_invasive_plant(plant_name,"35.9940° N", "78.8986° W")
     print(ret)
