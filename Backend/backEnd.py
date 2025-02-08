@@ -57,7 +57,7 @@ def get_marker(marker_id):
     else:
         return jsonify({'error': 'Marker not found'}), 404
     
-@app.route('delete_marker/<name,lat,lng>')
+@app.route('delete_marker/name/lat/lng')
 def delete_marker(name,lat,lng):
     gm.delete_marker(name,lat,lng)
     return redirect(url_for('index'))
