@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import firebase_admin
 from firebase_admin import credentials, firestore
 import googleMap as gm
+import prof as userprofile
 
 app = Flask(__name__)
 
@@ -55,28 +56,7 @@ def getMarkers():
 
 @app.route('/getProfileInfo/<email>', methods=['GET'])
 def getProfileInfo(email):
-    """
-    Retrieves user profile information based on their email.
-
-    Parameters:
-        email (str): The email of the user.
-
-    Returns:
-        JSON response with user profile data or an error message.
-    """
-    users_ref = db.collection('users') 
-    query = users_ref.where('email', '==', email).stream()
-
-    user_data = None
-    for doc in query:
-        user_data = doc.to_dict()
-        user_data["id"] = doc.id  
-        break  
-
-    if user_data:
-        return jsonify(user_data)
-    else:
-        return jsonify({'error': 'User not found'}), 404
+    return userprofile.getProfileInfo(email)
 
 
 if __name__ == '__main__':
