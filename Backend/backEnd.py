@@ -62,6 +62,36 @@ def delete_marker(name,lat,lng):
     gm.delete_marker(name,lat,lng)
     return redirect(url_for('index'))
 
+@app.route('getMarkers')
+def getMarkers():
+    return jsonify(gm.getMarkers())
+
+@app.route('/getProfileInfo/<email>')
+def getProfileInfo(email):
+    """
+    Retrieves user profile information based on their email.
+
+    Parameters:
+        email (str): The email of the user.
+
+    Returns:
+        JSON response with user profile data or an error message.
+    """
+    users_ref = db.collection('users')  # Assuming users are stored in a 'users' collection
+    query = users_ref.where('email', '==', email).stream()
+
+    user_data = None
+    for doc in query:
+        user_data = doc.to_dict()
+        user_data["id"] = doc.id  # Include Firestore document ID
+        break  # Take the first matching document and exit loop
+
+    if user_data:
+        return jsonify(user_data)
+    else:
+        return jsonify({'error': 'User not found'}), 404
+
+
 if __name__ == '__main__':
     app.run(debug=True)
 
