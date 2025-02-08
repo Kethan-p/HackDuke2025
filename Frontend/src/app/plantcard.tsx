@@ -14,7 +14,7 @@ interface PlantCardProps {
 const PlantCard: React.FC<PlantCardProps> = ({ name, image, latitude, longitude, description, onClose, onDelete }) => {
   const handleDelete = async () => {
     try {
-      const response = await axios.post(`/delete_marker/${name}/${latitude}/${longitude}`);
+      const response = await axios.delete(`/delete_marker/${name}/${latitude}/${longitude}`);
       console.log(response.data); 
       onDelete(name, latitude, longitude);
     } catch (error) {
