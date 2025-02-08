@@ -4,11 +4,11 @@ import axios from "axios";
 interface PlantCardProps {
   name: string;
   image: string;
-  latitude: number;
-  longitude: number;
+  latitude: string;
+  longitude: string;
   description: string;
   onClose: () => void;
-  onDelete: (name: string, latitude: number, longitude: number) => void;
+  onDelete: (name: string, latitude: string, longitude: string) => void;
 }
 
 const PlantCard: React.FC<PlantCardProps> = ({ name, image, latitude, longitude, description, onClose, onDelete }) => {

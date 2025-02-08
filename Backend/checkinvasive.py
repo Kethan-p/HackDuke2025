@@ -58,7 +58,6 @@ def check_invasive_plant(plant_name, lat, long):
         else:
             raise ValueError("Response does not start with 'True' or 'False'.")
 
-
         # print(f"Answer: {answer}")
 
         # if "true" in answer.lower():
@@ -70,9 +69,11 @@ def check_invasive_plant(plant_name, lat, long):
     except Exception as e:
         print(f"Error: {e}")
         return None, None
-
+'''
 if __name__ == "__main__":
     plant_name = "Lonicera japonica"  # Replace with any plant name
     # is_invasive, harmful_effects =
     ret = check_invasive_plant(plant_name,"35.9940° N", "78.8986° W")
+    #need to store UserId, name, isInvasive, info, location, image
     print(ret)
+'''
