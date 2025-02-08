@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import firebase_admin
 from firebase_admin import credentials, firestore
+import googleMap as gm
 
 app = Flask(__name__)
 
@@ -55,6 +56,13 @@ def get_marker(marker_id):
         return jsonify(marker)
     else:
         return jsonify({'error': 'Marker not found'}), 404
+    
+@app.route('delete_marker/<name,lat,lng>')
+def delete_marker(name,lat,lng):
+    gm.delete_marker(name,lat,lng)
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+

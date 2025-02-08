@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
 import PlantCard from "../plantcard";
 
 const PlantCardPage: React.FC = () => {
@@ -7,29 +6,10 @@ const PlantCardPage: React.FC = () => {
 
   const samplePlant = {
     name: "Japanese Knotweed",
-    image: "https://example.com/knotweed.jpg",
+    image: "Frontend/public/globe.svg",
     latitude: 40.7128,
     longitude: -74.006,
     description: "An aggressive plant that damages buildings and waterways.",
-  };
-
-  // Function to delete the marker by sending a POST request to the backend
-  const deleteMarker = async (name: string, latitude: number, longitude: number) => {
-    try {
-      // POST request to the Flask API to delete the marker
-      const response = await axios.post("http://localhost:5000/delete-marker", {
-        latitude,
-        longitude,
-      });
-
-      // Handle success response
-      console.log("Delete response:", response.data);
-      setShowCard(false); // Hide the card after deletion
-    } catch (error) {
-      // Handle error
-      console.error("Error deleting marker:", error);
-      alert("Error deleting marker. Try again later.");
-    }
   };
 
   return (
@@ -43,10 +23,10 @@ const PlantCardPage: React.FC = () => {
           longitude={samplePlant.longitude}
           description={samplePlant.description}
           onClose={() => setShowCard(false)}
-          onDelete={deleteMarker}
+          onDelete={() => setShowCard(false)}
         />
       )}
-      {!showCard && <p className="text-gray-500 mt-4">Marker deleted. Refresh to add again.</p>}
+      {!showCard && <p className="text-gray-500 mt-4">Card closed</p>}
     </div>
   );
 };
