@@ -2,19 +2,60 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
+import { auth } from '../firebase';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [isRegistering, setIsRegistering] = useState<boolean>(false);
+  const [name, setName] = useState<string>('');
+  const [hometown, setHometown] = useState<string>('');
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Basic validation – in a real app, you would validate credentials
-    if (username && password) {
+
+    if (!email || !password || (isRegistering && (!name || !hometown))) {
+      alert(
+        isRegistering
+          ? 'Please enter full name, hometown, email, and password.'
+          : 'Please enter both email and password.'
+      );
+      return;
+    }
+
+    try {
+      if (isRegistering) {
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        console.log('User account created:', userCredential.user);
+
+        await updateProfile(userCredential.user, { displayName: name });
+        console.log('Hometown provided:', hometown);
+      } else {
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        console.log('User signed in:', userCredential.user);
+      }
       navigate('/map');
-    } else {
-      alert('Please enter both username and password.');
+    } catch (error: unknown) {
+      let errorMessage = 'An error occurred';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      console.error('Authentication error:', error);
+      alert(errorMessage);
     }
   };
 
@@ -24,16 +65,41 @@ const LoginPage: React.FC = () => {
       style={{ backgroundImage: "url('/forest-background.jpg')" }}
     >
       <div className="bg-green-900 bg-opacity-60 p-8 rounded-lg shadow-lg max-w-sm w-full">
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">
-          Welcome to Forest Explorer
+        <h2 className="text-2xl font-bold text-white mb-2 text-center">
+          {isRegistering ? 'Create an Account' : 'Welcome Back!'}
         </h2>
-        <form onSubmit={handleLogin} className="space-y-4">
+        <p className="text-center text-green-200 mb-4">
+          {isRegistering
+            ? 'Join our community of forest explorers'
+            : 'Login to continue your forest adventure'}
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {isRegistering && (
+            <>
+              <input
+                type="text"
+                placeholder="Full Name"
+                className="w-full p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Hometown"
+                className="w-full p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                value={hometown}
+                onChange={(e) => setHometown(e.target.value)}
+                required
+              />
+            </>
+          )}
           <input
-            type="text"
-            placeholder="Username"
+            type="email"
+            placeholder="Email"
             className="w-full p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
           <input
@@ -48,9 +114,21 @@ const LoginPage: React.FC = () => {
             type="submit"
             className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition"
           >
-            Login
+            {isRegistering ? 'Sign Up' : 'Login'}
           </button>
         </form>
+        <p className="text-white mt-4 text-center">
+          {isRegistering
+            ? 'Already have an account?'
+            : "Don't have an account?"}{' '}
+          <button
+            type="button"
+            className="text-green-300 hover:underline"
+            onClick={() => setIsRegistering(!isRegistering)}
+          >
+            {isRegistering ? 'Login' : 'Sign Up'}
+          </button>
+        </p>
       </div>
     </div>
   );
