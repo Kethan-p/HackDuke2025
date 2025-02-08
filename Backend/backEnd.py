@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, firestore
 import prof as userprofile
@@ -7,7 +8,7 @@ import checkinvasive as ci
 import reports as rp
 
 app = Flask(__name__)
-
+CORS(app)
 # Initialize Firebase Admin with your service account key.
 cred = credentials.Certificate("path/to/serviceAccountKey.json")  # <-- Update this path
 firebase_admin.initialize_app(cred)
