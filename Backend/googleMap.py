@@ -1,75 +1,125 @@
-import requests
-from dotenv import load_dotenv
 import os
 import json
-from pprint import pprint
+import firebase_admin
+from firebase_admin import credentials, firestore
+from dotenv import load_dotenv
+from flask import Flask, request, jsonify
 
-#returns a tuple of Boolean, string
-#boolean is if it is a plant
-#string is either name of plant or error message
+# Load environment variables from .env file
+load_dotenv()
+
+# Initialize the Firebase Admin SDK with a service account key.
+SERVICE_ACCOUNT_KEY_PATH = os.getenv("SERVICE_ACCOUNT_KEY_PATH")
+if not SERVICE_ACCOUNT_KEY_PATH:
+    raise ValueError("Please set SERVICE_ACCOUNT_KEY_PATH in your .env file.")
+
+if not firebase_admin._apps:
+    cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
+    firebase_admin.initialize_app(cred)
+
+# Get a Firestore client
+db = firestore.client()
+
+# Initialize Flask app
+app = Flask(__name__)
+
 def getMarkers():
-    load_dotenv()
-    API_KEY = os.getenv("PLANTAPIKEY")
-
-    PROJECT = "all"
-    api_endpoint = f"https://my-api.plantnet.org/v2/identify/{PROJECT}?api-key={API_KEY}"
-
-    image_data = open(image_path, 'rb')
-    files = [ ('images', (image_path, image_data))]
-    try: 
-        req = requests.Request('POST', url=api_endpoint, files=files)
-
-        prepared = req.prepare()
-
-        s = requests.Session()
-        response = s.send(prepared)
-        json_result = json.loads(response.text)
-        if response.status_code == 200:
-            pprint(json_result['bestMatch'])
-            return (True, json_result['bestMatch'])
-        else:
-            print("error: try again")
-            return (False, "error: try again")
-    except requests.exceptions.RequestException as e:
-        print(f"Request failed: {e}")
-        return (False, f"Request failed: {e}")
-
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return (False, f"Unexpected error: {e}")
+    """
+    Queries the 'markers' collection in Firestore and returns a list of POI dictionaries.
     
-def addMarker():
-    title = request.form.get('title')
-    lat = request.form.get('lat')
-    lng = request.form.get('lng')
-    if title and lat and lng:
-        try:
-            marker = {
-                'title': title,
-                'lat': float(lat),
-                'lng': float(lng),
-                # You can add more fields here if needed.
+    Each POI dictionary is in the form:
+      {
+        "key": <string>,         # The title (or document ID if title is missing)
+        "location": {
+          "lat": <float>,        # Latitude value
+          "lng": <float>         # Longitude value
+        }
+      }
+    """
+    markers_ref = db.collection('markers')
+    docs = markers_ref.stream()
+
+    poi_list = []
+    for doc in docs:
+        data = doc.to_dict()
+        # Use the document's title as the key if available; otherwise, fallback to the document ID.
+        title = data.get("title", doc.id)
+        lat = data.get("latitude")
+        lng = data.get("longitude")
+
+        # Skip documents with missing coordinate data.
+        if lat is None or lng is None:
+            continue
+
+        poi = {
+            "key": title,
+            "location": {
+                "lat": lat,
+                "lng": lng
             }
-            db.collection('markers').add(marker)
-        except Exception as e:
-            print("Error adding marker:", e)
-    return redirect(url_for('index'))
-
-def getMarker(marker_id):
-    # Query Firestore for the marker with the given ID.
-    doc_ref = db.collection('markers').document(marker_id)
-    doc = doc_ref.get()
-    if doc.exists:
-        marker = doc.to_dict()
-        marker["id"] = doc.id
-        return jsonify(marker)
-    else:
-        return jsonify({'error': 'Marker not found'}), 404
+        }
+        poi_list.append(poi)
     
+    return poi_list
 
-        
+@app.route('/markers', methods=['POST'])
+def add_marker():
+    """
+    POST endpoint to add a new marker.
+    
+    Expected JSON payload:
+      {
+        "title": "NameOfMarker",
+        "latitude": <float>,
+        "longitude": <float>
+      }
+    
+    Returns the created marker data with its Firestore document ID.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
 
-getPlant('/Users/kethanpoduri/Desktop/image_1.jpeg')
+    # Validate required fields
+    title = data.get('title')
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
 
+    if title is None or latitude is None or longitude is None:
+        return jsonify({
+            'error': 'Missing required fields: title, latitude, and longitude'
+        }), 400
 
+    marker_data = {
+        'title': title,
+        'latitude': latitude,
+        'longitude': longitude,
+    }
 
+    # Create a new document in the 'markers' collection with an auto-generated ID.
+    doc_ref = db.collection('markers').document()
+    doc_ref.set(marker_data)
+
+    # Optionally, include the document ID in the returned data.
+    marker_data['id'] = doc_ref.id
+
+    return jsonify(marker_data), 201
+
+@app.route('/markers', methods=['GET'])
+def get_markers_json():
+    """
+    GET endpoint to retrieve all markers.
+    Returns markers in the format:
+      [
+         {
+             "key": "marker title",
+             "location": { "lat": latitude, "lng": longitude }
+         },
+         ...
+      ]
+    """
+    return jsonify(getMarkers())
+
+if __name__ == "__main__":
+    # Run the Flask development server
+    app.run(debug=True)
