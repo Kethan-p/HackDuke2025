@@ -7,7 +7,7 @@ from pprint import pprint
 #returns a tuple of Boolean, string
 #boolean is if it is a plant
 #string is either name of plant or error message
-def getPlant(image_path):
+def getPlant(image_path)->tuple:
     load_dotenv()
     API_KEY = os.getenv("PLANTAPIKEY")
 
