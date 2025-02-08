@@ -139,4 +139,3 @@ def delete_marker(title, lat, lng):
     
     return {'error': f'Marker "{title}" at ({lat}, {lng}) not found.'}
 
-
