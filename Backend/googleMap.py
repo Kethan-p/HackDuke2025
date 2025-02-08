@@ -5,10 +5,10 @@ from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 
-# Load environment variables from .env file
+#load environment variables from .env file
 load_dotenv()
 
-# Initialize the Firebase Admin SDK with a service account key.
+#initialize the Firebase Admin SDK with a service account key.
 SERVICE_ACCOUNT_KEY_PATH = os.getenv("SERVICE_ACCOUNT_KEY_PATH")
 if not SERVICE_ACCOUNT_KEY_PATH:
     raise ValueError("Please set SERVICE_ACCOUNT_KEY_PATH in your .env file.")
@@ -17,10 +17,9 @@ if not firebase_admin._apps:
     cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
     firebase_admin.initialize_app(cred)
 
-# Get a Firestore client
+#get a Firestore client
 db = firestore.client()
 
-# Initialize Flask app
 app = Flask(__name__)
 
 def getMarkers():
@@ -42,12 +41,11 @@ def getMarkers():
     poi_list = []
     for doc in docs:
         data = doc.to_dict()
-        # Use the document's title as the key if available; otherwise, fallback to the document ID.
+
         title = data.get("title", doc.id)
         lat = data.get("latitude")
         lng = data.get("longitude")
 
-        # Skip documents with missing coordinate data.
         if lat is None or lng is None:
             continue
 
@@ -62,33 +60,20 @@ def getMarkers():
     
     return poi_list
 
-@app.route('/markers', methods=['POST'])
-def add_marker():
+def add_marker(title, latitude, longitude):
     """
-    POST endpoint to add a new marker.
+    Adds a new marker directly without using request.get_json().
     
-    Expected JSON payload:
-      {
-        "title": "NameOfMarker",
-        "latitude": <float>,
-        "longitude": <float>
-      }
+    Parameters:
+        title (str): Name of the marker.
+        latitude (float): Latitude coordinate.
+        longitude (float): Longitude coordinate.
     
-    Returns the created marker data with its Firestore document ID.
+    Returns:
+        dict: The created marker data.
     """
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
-    # Validate required fields
-    title = data.get('title')
-    latitude = data.get('latitude')
-    longitude = data.get('longitude')
-
     if title is None or latitude is None or longitude is None:
-        return jsonify({
-            'error': 'Missing required fields: title, latitude, and longitude'
-        }), 400
+        return {'error': 'Missing required fields: title, latitude, and longitude'}
 
     marker_data = {
         'title': title,
@@ -96,16 +81,14 @@ def add_marker():
         'longitude': longitude,
     }
 
-    # Create a new document in the 'markers' collection with an auto-generated ID.
     doc_ref = db.collection('markers').document()
     doc_ref.set(marker_data)
 
-    # Optionally, include the document ID in the returned data.
     marker_data['id'] = doc_ref.id
 
-    return jsonify(marker_data), 201
+    return marker_data 
 
-@app.route('/markers', methods=['GET'])
+
 def get_markers_json():
     """
     GET endpoint to retrieve all markers.
@@ -120,6 +103,40 @@ def get_markers_json():
     """
     return jsonify(getMarkers())
 
-if __name__ == "__main__":
-    # Run the Flask development server
-    app.run(debug=True)
+def delete_marker(title, lat, lng):
+    """
+    Deletes a marker from the 'markers' collection in Firestore.
+
+    Parameters:
+        title (str): Name of the marker to delete.
+        lat (float): Latitude coordinate of the marker.
+        lng (float): Longitude coordinate of the marker.
+
+    Returns:
+        dict: A dictionary with the result of the deletion operation.
+    """
+    if title is None or lat is None or lng is None:
+        return {'error': 'Missing required fields: title, latitude, and longitude'}
+    
+    markers_ref = db.collection('markers')
+    query = (
+        markers_ref
+        .where('title', '==', title)
+        .where('latitude', '==', lat)
+        .where('longitude', '==', lng)
+    )
+
+    docs = query.stream()
+
+    deleted = False
+    for doc in docs:
+        doc.reference.delete()
+        deleted = True
+        break 
+
+    if deleted:
+        return {'success': f'Marker "{title}" at ({lat}, {lng}) deleted.'}
+    
+    return {'error': f'Marker "{title}" at ({lat}, {lng}) not found.'}
+
+
