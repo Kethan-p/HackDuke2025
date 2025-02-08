@@ -23,9 +23,9 @@ def clean_text(text):
     # Trim leading/trailing whitespace
     return cleaned.strip()
 
-def check_invasive_plant(plant_name):
+def check_invasive_plant(plant_name, lat, long):
     try:
-        prompt = f"Is the plant '{plant_name}' an invasive species? If yes, return 'true' and list its harmful effects. If no, return 'false' and an empty string."
+        prompt = f"Is the plant '{plant_name}' at these coordinates '{lat}' , '{long}' an invasive species? If yes, return 'true' and list its harmful effects. If no, return 'false' and an empty string."
 
         client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY")
