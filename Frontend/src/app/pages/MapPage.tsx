@@ -34,7 +34,7 @@ interface OSMElement {
   };
 }
 
-const CLUSTER_RADIUS = 800;
+const CLUSTER_RADIUS = 1000;
 const DEFAULT_ZOOM = 13;
 
 const MapPage: React.FC = () => {
@@ -44,12 +44,13 @@ const MapPage: React.FC = () => {
   const clustersRef = useRef<TrailCluster[]>([]);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const activeClusterRef = useRef<TrailCluster | null>(null);
+  const activeInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
 
   // Returns a complete icon always as a google.maps.Symbol
   const getHikingIcon = useCallback((count: number): google.maps.Symbol => {
     return {
       path: window.google!.maps.SymbolPath.CIRCLE,
-      scale: 15 + Math.log2(count) * 2,
+      scale: 15 + Math.log2(count) * 0,
       fillColor: '#2d5b27',
       fillOpacity: 0.9,
       strokeColor: '#fff',
@@ -265,9 +266,18 @@ const MapPage: React.FC = () => {
         });
 
         marker.addListener('click', () => {
-          infoWindow.close();
+          // Close any previously open infoWindow
+          if (activeInfoWindowRef.current) {
+            activeInfoWindowRef.current.close();
+          }
           handleClusterClick(cluster);
           infoWindow.open(mapInstanceRef.current, marker);
+          activeInfoWindowRef.current = infoWindow;
+        });
+
+        // Optionally, clear the active infoWindow ref when it is closed by the user
+        infoWindow.addListener('closeclick', () => {
+          activeInfoWindowRef.current = null;
         });
 
         cluster.marker = marker;
