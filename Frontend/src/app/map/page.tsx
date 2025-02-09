@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Navbar from '../components/Navbar';
+import { auth } from '../firebase';
+import { User } from 'firebase/auth';
 
 declare global {
   interface Window {
@@ -48,6 +50,17 @@ const MapPage: React.FC = () => {
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const activeClusterRef = useRef<TrailCluster | null>(null);
   const activeInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+
+  // Add user state to hold the current authenticated user.
+  const [user, setUser] = useState<User | null>(null);
+
+  // Listen for auth state changes.
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Returns a complete icon always as a google.maps.Symbol
   const getHikingIcon = useCallback((count: number): google.maps.Symbol => {
@@ -339,23 +352,32 @@ const MapPage: React.FC = () => {
 
   return (
     <>
-      <Navbar isAuthenticated={true} />
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-green-100 mt-16">
-        <h2 className="text-3xl font-bold text-green-800 mb-6">Durham Hiking Trails</h2>
+      {/* Fixed Navbar overlay */}
+      <div className="fixed top-0 left-0 right-0 z-20">
+        <Navbar
+          isAuthenticated={true}
+          displayName={user ? (user.displayName || user.email) : undefined}
+        />
+      </div>
+
+      {/* Full-screen container for map and overlays */}
+      <div className="relative h-screen bg-green-100">
+        {/* Optional loading and error messages as overlays */}
         {isLoading && !error && (
-          <div className="text-lg text-gray-600 mb-4">Loading map...</div>
+          <div className="absolute z-10 top-16 left-1/2 transform -translate-x-1/2 text-lg text-gray-600">
+            Loading map...
+          </div>
         )}
         {error && (
-          <div className="text-red-600 mb-4">
+          <div className="absolute z-10 top-16 left-1/2 transform -translate-x-1/2 text-red-600">
             {error} - Please try refreshing the page
           </div>
         )}
-        <div className="mb-4 text-sm text-gray-600">
-          Click cluster markers to explore trails
-        </div>
+
+        {/* Map container takes the full viewport height */}
         <div
           ref={mapRef}
-          className="w-full max-w-5xl h-[600px] border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden bg-white"
+          className="w-full h-full border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden bg-white relative z-0"
         />
       </div>
     </>
