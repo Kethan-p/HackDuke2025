@@ -20,14 +20,14 @@ if not firebase_admin._apps:
 # Get a Firestore client.
 db = firestore.client()
 
-def storeInfo(User_Email, plant_name, image_path, lat, lng, description, invasive_info, is_removed=False):
+def storeInfo(User_Email, plant_name, image_data, lat, lng, description, invasive_info, is_removed=False):
     """
     Stores plant information in Firestore under the 'plant_info' collection.
 
     Parameters:
         User_Email (str): Email of the user who submitted the report.
         plant_name (str): The identified name of the plant.
-        image_path (str): The file path to the plant image.
+        image_data (binary): The binary data of the plant image.
         lat (str or float): The latitude coordinate.
         lng (str or float): The longitude coordinate.
         description (str): A description of the plant/report.
@@ -38,12 +38,12 @@ def storeInfo(User_Email, plant_name, image_path, lat, lng, description, invasiv
         None
     """
     try:
-        # Prepare the data to store.
+        
         plant_data = {
             'userEmail': User_Email,
             'plant_name': plant_name,
-            'image_path': image_path,
-            'lat': str(lat),       # Storing as string; conversion happens on retrieval.
+            'image': image_data,  # Store the Firestore Blob in the document.
+            'lat': str(lat),      # Storing as string; conversion happens on retrieval.
             'lng': str(lng),
             'description': description,
             'invasive_info': invasive_info,

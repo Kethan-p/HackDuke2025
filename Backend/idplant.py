@@ -7,17 +7,15 @@ from pprint import pprint
 #returns a tuple of Boolean, string
 #boolean is if it is a plant
 #string is either name of plant or error message
-def getPlant(image_path)->tuple:
+def getPlant(image)->tuple:
     load_dotenv()
     API_KEY = os.getenv("PLANTAPIKEY")
 
     PROJECT = "all"
     api_endpoint = f"https://my-api.plantnet.org/v2/identify/{PROJECT}?api-key={API_KEY}"
 
-    image_data = open(image_path, 'rb')
-    files = [ ('images', (image_path, image_data))]
     try: 
-        req = requests.Request('POST', url=api_endpoint, files=files)
+        req = requests.Request('POST', url=api_endpoint, files=image)
 
         prepared = req.prepare()
 
