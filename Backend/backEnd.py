@@ -27,35 +27,51 @@ def index():
 
     return render_template('index.html', markers=markers)
 
-@app.route('/create_report/<email>/<img_path>/<lat>/<lng>/', methods=['POST'])
-def create_report(email, img_path, lat, lng):
+# Modified route: remove the image path parameter since we expect the image file in the POST body.
+@app.route('/create_report/<email>/<lat>/<lng>/', methods=['POST'])
+def create_report(email, lat, lng):
     """
-    Processes a new invasive plant report. It:
-      1. Identifies the plant using the provided image.
-      2. Checks whether it is invasive.
-      3. Adds a marker to the map.
-      4. Stores the report in Firestore.
-    
-    The URL parameters include the reporting user's email, the image path,
-    and the coordinates (latitude and longitude).
+    Processes a new invasive plant report by:
+      1. Reading the image from the POST request (sent from a React app).
+      2. Converting it to a Firestore Blob.
+      3. Passing it to the plant identification and invasive check functions.
+      4. Storing the report in Firestore via the rp module.
     """
-    # Identify the plant.
-    plantResult = idplant.getPlant(img_path)
-    if plantResult[0]:
-        # Check invasive information (assumes check_invasive_plant returns a tuple
-        # where the first element indicates the invasive status and the second a description).
-        invasiveResult = ci.check_invasive_plant(plantResult[1], lat, lng)
-    else:
+    # Expect the image file to be sent as part of the request files (with key 'image')
+    image_file = request.files.get("image")
+    if not image_file:
+        return jsonify({"error": "No image provided"}), 400
+
+    # Read the binary data from the image file.
+    image_data = image_file.read()
+
+    # Create a Firestore Blob from the binary image data.
+    image_blob = firestore.Blob(image_data)
+
+    # Identify the plant using the image data.
+    # Note: idplant.getPlant must be modified to accept image_blob (or raw bytes) instead of a file path.
+    plantResult = idplant.getPlant(image_file)
+    if not plantResult[0]:
         return jsonify({"error": "Not a plant"}), 400
 
-    # If the invasive check indicates "Not a plant", abort.
+    # Check invasive information.
+    invasiveResult = ci.check_invasive_plant(plantResult[1], lat, lng)
     if invasiveResult[0] == "Not a plant":
         return jsonify({"error": "Not a plant"}), 400
 
     # Store the report in Firestore using your reports module.
-    rp.storeInfo(email, plantResult[1], img_path, lat, lng, invasiveResult[1], invasiveResult[0])
+    # rp.storeInfo should be updated to accept the image Blob.
+    rp.storeInfo(
+        user_email=email,
+        plant_name=plantResult[1],
+        image=image_blob,
+        lat=lat,
+        lng=lng,
+        description=invasiveResult[1],
+        invasive_info=invasiveResult[0]
+    )
+    
     return redirect(url_for('index'))
-
 @app.route('/getUserReportsInfo/<email>', methods=['GET'])
 def get_user_reports_info(email):
     """
