@@ -7,7 +7,6 @@ import { signOut, User } from 'firebase/auth';
 import axios from 'axios';
 import PlantCard from '../plantcard';
 
-// Define a type for the reports array elements
 interface Report {
   plant_name: string;
   lat: string;
@@ -19,37 +18,56 @@ interface Report {
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-
-  // Use our Report type here
   const [reports, setReports] = useState<Report[]>([]);
+  const [error, setError] = useState<string>('');
 
+  // Make sure you have NEXT_PUBLIC_BACKEND_URL in your .env file
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  // Keep track of user auth state
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
+  // Fetch user reports after we have a valid user
   useEffect(() => {
-    if (user) {
-      // Fetch user reports by email
+    if (user && user.email) {
       axios
-        .get(`/getUserReportsInfo/${user.email}`)
+        // Pass the email in the query string so the Flask route can read it with request.args.get("email")
+        .get(`${backendUrl}/getUserReportsInfo?email=${user.email}`)
         .then((response) => {
-          // Ensure we map the incoming data to our Report interface (if needed).
           setReports(response.data);
         })
-        .catch(console.error);
+        .catch((err) => {
+          console.error('Error fetching user reports:', err);
+          setError('Could not load your plant reports at this time.');
+        });
     }
-  }, [user]);
+  }, [user, backendUrl]);
 
-  const handleDeleteReport = (
-    name: string,
-    latitude: string,
-    longitude: string
-  ) => {
+  // Example delete handler (ensure the backend has a DELETE endpoint if you want to truly remove)
+  const handleDeleteReport = (name: string, latitude: string, longitude: string) => {
+    // If you have an API to delete the report:
+    // axios.delete(`${backendUrl}/deleteReport`, { data: { ... } })
+    //   .then(() => {
+    //     setReports((prev) =>
+    //       prev.filter(
+    //         (report) =>
+    //           !(
+    //             report.plant_name === name &&
+    //             report.lat === latitude &&
+    //             report.lng === longitude
+    //           )
+    //       )
+    //     );
+    //   })
+    //   .catch((err) => { ... });
+
+    // For now, just remove it client-side:
     setReports((prev) =>
       prev.filter(
         (report) =>
@@ -62,11 +80,9 @@ const ProfilePage: React.FC = () => {
     );
   };
 
-  const handleCloseReport = (
-    name: string,
-    latitude: string,
-    longitude: string
-  ) => {
+  // Example close handler
+  const handleCloseReport = (name: string, latitude: string, longitude: string) => {
+    // If you have a "close" action in your DB, call it. Otherwise, just remove from state:
     setReports((prev) =>
       prev.filter(
         (report) =>
@@ -79,6 +95,7 @@ const ProfilePage: React.FC = () => {
     );
   };
 
+  // Loading state
   if (loading) {
     return (
       <>
@@ -90,6 +107,7 @@ const ProfilePage: React.FC = () => {
     );
   }
 
+  // If no user is logged in
   if (!user) {
     return (
       <>
@@ -159,6 +177,13 @@ const ProfilePage: React.FC = () => {
             </button>
           </div>
 
+          {/* Error handling, if any */}
+          {error && (
+            <div className="mb-4 text-center">
+              <p className="text-red-600">{error}</p>
+            </div>
+          )}
+
           {/* User Posts Section */}
           <div className="mb-12">
             <h2 className="text-3xl font-bold text-green-800 mb-6 text-center">
@@ -185,7 +210,9 @@ const ProfilePage: React.FC = () => {
                     onClose={() =>
                       handleCloseReport(report.plant_name, report.lat, report.lng)
                     }
-                    onDelete={handleDeleteReport}
+                    onDelete={() =>
+                      handleDeleteReport(report.plant_name, report.lat, report.lng)
+                    }
                   />
                 ))}
               </div>

@@ -33,36 +33,6 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, displayName }) => {
       {/* Only render navigation items if we're NOT on the login page */}
       {pathname !== '/login' && (
         <>
-          {/* Center - Navigation Links (only if logged in) */}
-          {isAuthenticated && (
-            <ul className="hidden md:flex space-x-6 text-green-800 font-semibold">
-              <li>
-                <Link 
-                  href="/map" 
-                  className={pathname === '/map' ? 'text-green-600' : ''}
-                >
-                  Map
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/about" 
-                  className={pathname === '/about' ? 'text-green-600' : ''}
-                >
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/image" 
-                  className={pathname === '/image' ? 'text-green-600' : ''}
-                >
-                  Image
-                </Link>
-              </li>
-            </ul>
-          )}
-
           {/* Right side - Profile / Dropdown (only if logged in) */}
           {isAuthenticated && (
             <div className="relative flex items-center space-x-4">
@@ -121,6 +91,17 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, displayName }) => {
                         About
                       </Link>
                     </li>
+                    <li>
+                      <Link
+                        href="/image"
+                        onClick={() => setMenuOpen(false)}
+                        className={`block px-4 py-2 hover:bg-green-100 ${
+                          pathname === '/image' ? 'text-green-600' : 'text-green-800'
+                        }`}
+                      >
+                        Image
+                      </Link>
+                    </li>
                   </ul>
                 </div>
               )}
@@ -133,3 +114,8 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, displayName }) => {
 };
 
 export default Navbar;
+
+
+
+
+
