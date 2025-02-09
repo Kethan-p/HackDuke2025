@@ -12,10 +12,21 @@ interface PlantCardProps {
 }
 
 const PlantCard: React.FC<PlantCardProps> = ({ name, image, latitude, longitude, description, onClose, onDelete }) => {
+
   const handleDelete = async () => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     try {
-      const response = await axios.delete(`/delete_marker/${name}/${latitude}/${longitude}`);
-      console.log(response.data); 
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('lat', latitude);
+      formData.append('lng', longitude);
+      const response = await axios.delete(`${backendUrl}/delete_marker`, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        data: formData
+      });
+      console.log("Response from delete_marker:", response);
       onDelete(name, latitude, longitude);
     } catch (error) {
       console.error("There was an error deleting the marker:", error);

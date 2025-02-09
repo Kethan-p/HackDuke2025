@@ -11,7 +11,7 @@ interface Report {
   plant_name: string;
   lat: string;
   lng: string;
-  img_path: string;
+  image: string;
   description: string;
 }
 
@@ -199,11 +199,12 @@ const ProfilePage: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {reports.map((report) => (
+                
+                {reports.map((report,index) => (
                   <PlantCard
-                    key={`${report.plant_name}-${report.lat}-${report.lng}`}
+                    key={index}
                     name={report.plant_name}
-                    image={report.img_path}
+                    image={report.image}
                     latitude={report.lat}
                     longitude={report.lng}
                     description={report.description}

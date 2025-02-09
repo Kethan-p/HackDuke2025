@@ -108,7 +108,9 @@ def get_user_reports_info():
     if not email:
         return jsonify({"error": "Missing email"}), 400
 
-    return jsonify(rp.getUserReportsInfo(email))
+    # Directly return the response from getUserReportsInfo.
+    return rp.getUserReportsInfo(email)
+
 
 @app.route('/getMarkerInfo', methods=['GET'])
 def get_marker_info():
@@ -153,6 +155,7 @@ def delete_marker():
     Marks a marker as removed.
     Expects name, lat, and lng as form data.
     """
+    print("hitting endpoint")
     name = request.form.get("name")
     lat = request.form.get("lat")
     lng = request.form.get("lng")

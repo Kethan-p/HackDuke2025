@@ -1,9 +1,10 @@
 import os
 import json
-import firebase_admin
+import firebase_admin 
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
+from google.cloud.firestore_v1 import FieldFilter
 import base64
 
 # Load environment variables from .env file.
@@ -52,34 +53,38 @@ def storeInfo(User_Email, plant_name, image_data, lat, lng, description, invasiv
 def getUserReportsInfo(email):
     """
     Retrieves user reports (plant info) based on the user's email.
+
+    Parameters:
+        email (str): The user's email.
+
+    Returns:
+        A JSON response containing a list of plant information dictionaries.
     """
-    users_ref = db.collection('plant_info') 
-    query = users_ref.where('userEmail', '==', email).stream()
+    users_ref = db.collection('plant_info')
+    # Filter by userEmail.
+    query = users_ref.where(filter=FieldFilter("userEmail", "==", email)).stream()
 
     user_data = []
     for doc in query:
         data = doc.to_dict()
-        data["id"] = doc.id  
-        
-        # If you have a field "image" containing raw bytes, convert it to Base64
-        if "image" in data and data["image"] is not None:
-            # Convert to base64 string
-            base64_str = base64.b64encode(data["image"]).decode('utf-8')
-            
-            # Option A: Store it in a new field that your frontend will use
-            data["img_path"] = f"data:image/png;base64,{base64_str}"
-            
-            # Optionally remove the original 'image' bytes field
-            del data["image"]
+        data["id"] = doc.id
+
+        # Convert any bytes fields to a base64 encoded string.
+        for key, value in data.items():
+            if isinstance(value, bytes):
+                # If the field is an image (assumed to be stored in 'img_path'),
+                # prepend the data URL header (adjust MIME type as necessary).
+                if key == 'image':
+                    print("i found an image")
+                    data[key] = "data:image/jpeg;base64," + base64.b64encode(value).decode('utf-8')
+                else:
+                    data[key] = base64.b64encode(value).decode('utf-8')
 
         user_data.append(data)
 
-    if user_data:
-        # Return a list of dictionaries
-        return user_data
-    else:
-        # If no documents found for that user
-        return {'error': 'User not found'}, 404
+    # Return the data as a JSON response with a 200 status code.
+    return jsonify(user_data), 200
+
 
 def getMarkerInfo(lat, lng, NameOfPlant):
     """
@@ -121,23 +126,25 @@ def getMarkers():
 
     Each POI dictionary is in the form:
       {
-        "key": <string>,         # The plant name (or document ID if plant_name is missing)
-        "location": {
-          "lat": <float>,        # Latitude value
-          "lng": <float>         # Longitude value
-        }
+          "key": <string>,   # The plant name (or document ID if plant_name is missing)
+          "vars": {
+              "lat": <float>,    # Latitude value
+              "lng": <float>,    # Longitude value
+              "image": <string>, # Base64-encoded image data
+              "desc": <string>   # Description
+          }
       }
 
     Only documents with a non-empty 'invasive_info' field and 'removed' == False are returned.
     """
     try:
         markers_ref = db.collection('plant_info')
-        # Query for documents where removed is False.
-        # We assume that a non-empty invasive_info (i.e. greater than empty string) indicates an invasive plant.
-        query = markers_ref.where('removed', '==', False).where('invasive_info', '>', '')
+        # If invasive_info is stored as a boolean, use True. If it is a string, adjust accordingly.
+        query = markers_ref.where(filter=FieldFilter("removed", "==", False)) \
+                           .where(filter=FieldFilter("invasive_info", "==", True))
         docs = query.stream()
-
         poi_list = []
+
         for doc in docs:
             data = doc.to_dict()
 
@@ -145,24 +152,35 @@ def getMarkers():
             key = data.get('plant_name', doc.id)
             lat = data.get('lat')
             lng = data.get('lng')
+            image = data.get('image')
+            desc = data.get('description')
 
             # Skip if coordinates are missing.
             if lat is None or lng is None:
                 continue
 
+            # If the image data is in bytes, convert it to a base64 string.
+            if isinstance(image, bytes):
+                image = "data:image/jpeg;base64," + base64.b64encode(image).decode('utf-8')
+
             poi = {
                 "key": key,
-                "location": {
+                "vars": {
                     "lat": float(lat),
-                    "lng": float(lng)
+                    "lng": float(lng),
+                    "image": image,
+                    "desc": desc
                 }
             }
             poi_list.append(poi)
         
         return poi_list
+
     except Exception as e:
         print(f"Error retrieving markers: {e}")
-        return jsonify({'error': f"Error retrieving markers: {e}"}), 500
+        return {"error": f"Error retrieving markers: {e}"}
+
+   
 
 def markMarkerAsRemoved(marker_id, is_removed=True):
     """
@@ -183,5 +201,3 @@ def markMarkerAsRemoved(marker_id, is_removed=True):
     except Exception as e:
         print(f"Error updating marker: {e}")
         return {"error": f"Error updating marker: {e}"}
-
-
