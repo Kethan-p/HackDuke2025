@@ -25,7 +25,7 @@ def clean_text(text):
 
 def check_invasive_plant(plant_name, lat, long):
     try:
-        prompt = f"Is the plant '{plant_name}' at these coordinates '{lat}' , '{long}' an invasive species? If yes, return 'true' and list its harmful effects. If no, return 'false' and basic information about the plant. Mention the location of the plant in your response, but do not mention anything regarding coordinates. "
+        prompt = f"Is the plant '{plant_name}' at these coordinates '{lat}' , '{long}' an invasive species? If yes, return 'true' and list its harmful effects. If no, return 'false' and basic information about the plant. Mention the location of the plant in your response, but do not mention anything regarding coordinates. It is crucial to start the response with true is the plant is invasive and false if it is not. The first word should be true or false."
 
         client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY")
@@ -40,6 +40,7 @@ def check_invasive_plant(plant_name, lat, long):
 
         content = completion.choices[0].message.content.strip()
         # Extract the first word (removing punctuation like '.' or ',')
+        print(content)
         first_word = content.split()[0].strip(".,").lower()
         
         if first_word == "true":
@@ -54,9 +55,9 @@ def check_invasive_plant(plant_name, lat, long):
             return (True, rest_of_text)
         
         elif first_word == "false":
-            return (False, "")
+            return (False, "Not Invasive")
         else:
-            raise ValueError("Response does not start with 'True' or 'False'.")
+            return (False, "Invalid response")
 
         # print(f"Answer: {answer}")
 

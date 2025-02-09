@@ -8,15 +8,12 @@ import checkinvasive as ci
 import reports as rp
 from io import BytesIO
 from PIL import Image
+import os 
 
 app = Flask(__name__)
 CORS(app)
-# Initialize Firebase Admin with your service account key.
-cred = credentials.Certificate("path/to/serviceAccountKey.json")  # <-- Update this path
-firebase_admin.initialize_app(cred)
 
-# Create a Firestore client.
-db = firestore.client()
+from firebase_client import db
 
 @app.route('/')
 def index():
@@ -26,20 +23,28 @@ def index():
     and pass them to the template.
     """
     markers = rp.getMarkers()
+    return jsonify({
+        "message": "Welcome to the Flask API",
+        "markers": markers
+    })
 
-    return render_template('index.html', markers=markers)
-
-# Modified route: remove the image path parameter since we expect the image file in the POST body.
-@app.route('/create_report/<email>/<lat>/<lng>/', methods=['POST'])
-def create_report(email, lat, lng):
+@app.route('/create_report', methods=['POST'])
+def create_report():
     """
     Processes a new invasive plant report by:
       1. Reading the image from the POST request.
       2. Ensuring the image is in JPEG or PNG format.
-      3. Creating a Firestore Blob from the (converted) image data.
+      3. Converting the image data to raw bytes.
       4. Passing a file-like object to the plant identification function.
       5. Storing the report in Firestore via the rp module.
     """
+    # Retrieve email, latitude, and longitude from the request form.
+    email = request.form.get("email")
+    lat = request.form.get("lat")
+    lng = request.form.get("lng")
+    if not email or not lat or not lng:
+        return jsonify({"error": "Missing email, latitude, or longitude"}), 400
+
     # Retrieve the image file from the request (expecting key 'image').
     image_file = request.files.get("image")
     if not image_file:
@@ -66,27 +71,26 @@ def create_report(email, lat, lng):
         image_for_plant = output
         # Use the converted bytes for storage.
         converted_data = output.getvalue()
-        image_blob = firestore.Blob(converted_data)
+        image_blob = converted_data  # Store raw bytes in Firestore.
     else:
         # The image is already JPEG or PNG.
         image_for_plant = BytesIO(image_data)
-        image_blob = firestore.Blob(image_data)
+        image_blob = image_data  # Store raw bytes in Firestore.
 
-    # Now, pass the file-like object (guaranteed to be JPEG or PNG) to the plant identification function.
+    # Pass the file-like object to the plant identification function.
     plantResult = idplant.getPlant(image_for_plant)
     if not plantResult[0]:
         return jsonify({"error": "Not a plant"}), 400
 
-    # Check invasive information.
     invasiveResult = ci.check_invasive_plant(plantResult[1], lat, lng)
     if invasiveResult[0] == "Not a plant":
         return jsonify({"error": "Not a plant"}), 400
 
     # Store the report in Firestore via your reports module.
     rp.storeInfo(
-        user_email=email,
+        User_Email=email,
         plant_name=plantResult[1],
-        image=image_blob,  # This is the Firestore Blob (converted or original).
+        image_data=image_blob,  # Save the raw bytes.
         lat=lat,
         lng=lng,
         description=invasiveResult[1],
@@ -95,28 +99,43 @@ def create_report(email, lat, lng):
     
     return redirect(url_for('index'))
 
-
-@app.route('/getUserReportsInfo/<email>', methods=['GET'])
-def get_user_reports_info(email):
+@app.route('/getUserReportsInfo', methods=['GET'])
+def get_user_reports_info():
     """
     Returns all reports for the given user (based on email) as JSON.
+    Expects the email to be provided as a query parameter.
+    Example: /getUserReportsInfo?email=user@example.com
     """
+    email = request.args.get("email")
+    if not email:
+        return jsonify({"error": "Missing email"}), 400
     return jsonify(rp.getUserReportsInfo(email))
 
-@app.route('/getMarkerInfo/<lat>/<lng>/<nameOfPlant>', methods=['GET'])
-def get_marker_info(lat, lng, nameOfPlant):
+@app.route('/getMarkerInfo', methods=['GET'])
+def get_marker_info():
     """
-    Returns marker information for a specific invasive plant report identified by its
-    latitude, longitude, and plant name.
+    Returns marker information for a specific invasive plant report.
+    Expects latitude, longitude, and nameOfPlant as query parameters.
+    Example: /getMarkerInfo?lat=...&lng=...&nameOfPlant=...
     """
+    lat = request.args.get("lat")
+    lng = request.args.get("lng")
+    nameOfPlant = request.args.get("nameOfPlant")
+    if not (lat and lng and nameOfPlant):
+        return jsonify({"error": "Missing lat, lng, or nameOfPlant"}), 400
     info = rp.getMarkerInfo(lat, lng, nameOfPlant)
     return jsonify(info)
 
-@app.route('/get_marker/<marker_id>', methods=['GET'])
-def get_marker(marker_id):
+@app.route('/get_marker', methods=['GET'])
+def get_marker():
     """
     Retrieves a single marker (report) from Firestore based on its document ID.
+    Expects marker_id as a query parameter.
+    Example: /get_marker?marker_id=...
     """
+    marker_id = request.args.get("marker_id")
+    if not marker_id:
+        return jsonify({"error": "Missing marker_id"}), 400
     try:
         doc_ref = db.collection('plant_info').document(marker_id)
         doc = doc_ref.get()
@@ -129,13 +148,17 @@ def get_marker(marker_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/delete_marker/<name>/<lat>/<lng>', methods=['DELETE'])
-def delete_marker(name, lat, lng):
+@app.route('/delete_marker', methods=['DELETE'])
+def delete_marker():
     """
-    Marks a marker as removed. This endpoint queries Firestore for reports that match
-    the provided plant name and coordinates, then updates their 'removed' field.
-    Removed markers will no longer be returned by the /getMarkers endpoint.
+    Marks a marker as removed.
+    Expects name, lat, and lng as form data.
     """
+    name = request.form.get("name")
+    lat = request.form.get("lat")
+    lng = request.form.get("lng")
+    if not (name and lat and lng):
+        return jsonify({"error": "Missing name, lat, or lng"}), 400
     try:
         markers_ref = db.collection('plant_info')
         query = markers_ref.where('plant_name', '==', name) \
@@ -161,11 +184,16 @@ def get_markers():
     markers = rp.getMarkers()
     return jsonify(markers)
 
-@app.route('/getProfileInfo/<email>', methods=['GET'])
-def get_profile_info(email):
+@app.route('/getProfileInfo', methods=['GET'])
+def get_profile_info():
     """
     Returns the user profile information for the specified email.
+    Expects email as a query parameter.
+    Example: /getProfileInfo?email=user@example.com
     """
+    email = request.args.get("email")
+    if not email:
+        return jsonify({"error": "Missing email"}), 400
     return userprofile.getProfileInfo(email)
 
 if __name__ == '__main__':

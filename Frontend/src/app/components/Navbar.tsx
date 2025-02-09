@@ -30,6 +30,27 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, displayName }) => {
         />
       </Link>
 
+      {/* ✅ Ensure NOTHING appears on the right side if on Login Page */}
+      {pathname !== '/login' && (
+        <>
+          {/* Center - Navigation Links (Only Show After Login) */}
+          {isAuthenticated && (
+            <ul className="hidden md:flex space-x-6 text-green-800 font-semibold">
+              <li>
+                <Link href="/map" className={pathname === '/map' ? 'text-green-600' : ''}> Map </Link>
+              </li>
+              <li>
+                <Link href="/about" className={pathname === '/about' ? 'text-green-600' : ''}>
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link href="/image" className={pathname === '/image' ? 'text-green-600' : ''}>
+                  Image
+                </Link>
+              </li>
+            </ul>
+          )}
       {/* Right side (do not show anything on the login page) */}
       {pathname !== '/login' && isAuthenticated && (
         <div className="relative flex items-center space-x-4">

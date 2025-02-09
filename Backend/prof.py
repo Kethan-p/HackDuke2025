@@ -9,16 +9,7 @@ from flask import Flask, request, jsonify
 load_dotenv()
 
 #initialize the Firebase Admin SDK with a service account key.
-SERVICE_ACCOUNT_KEY_PATH = os.getenv("SERVICE_ACCOUNT_KEY_PATH")
-if not SERVICE_ACCOUNT_KEY_PATH:
-    raise ValueError("Please set SERVICE_ACCOUNT_KEY_PATH in your .env file.")
-
-if not firebase_admin._apps:
-    cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
-    firebase_admin.initialize_app(cred)
-
-#get a Firestore client
-db = firestore.client()
+from firebase_client import db
 
 app = Flask(__name__)
 
