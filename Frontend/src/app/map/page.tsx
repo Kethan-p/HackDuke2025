@@ -349,8 +349,10 @@ const MapPage: React.FC = () => {
 
   const fetchPlantMarkers = useCallback(async () => {
     if (!mapInstanceRef.current || !window.google?.maps) return;
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  
     try {
-      const response = await axios.get('/get_markers');
+      const response = await axios.get(`${backendUrl}/get_markers`);
       const markersData = response.data;
       markersData.forEach((markerData: any) => {
         const { key, vars } = markerData;
