@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import { auth } from '../firebase';
 import { User } from 'firebase/auth';
+import Link from 'next/link';
+import Image from 'next/image';
 
 declare global {
   interface Window {
@@ -379,6 +381,13 @@ const MapPage: React.FC = () => {
           ref={mapRef}
           className="w-full h-full border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden bg-white relative z-0"
         />
+
+        {/* Camera button in the bottom left corner (5x larger, without circular styling) */}
+        <Link href="/image">
+          <div className="absolute bottom-4 left-4 z-30">
+            <Image src="/camera.png" alt="Camera" width={120} height={120} />
+          </div>
+        </Link>
       </div>
     </>
   );

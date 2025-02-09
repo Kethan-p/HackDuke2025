@@ -33,35 +33,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, displayName }) => {
       {/* Only render navigation items if we're NOT on the login page */}
       {pathname !== '/login' && (
         <>
-          {/* Center - Navigation Links (only if logged in) */}
-          {isAuthenticated && (
-            <ul className="hidden md:flex space-x-6 text-green-800 font-semibold">
-              <li>
-                <Link 
-                  href="/map" 
-                  className={pathname === '/map' ? 'text-green-600' : ''}
-                >
-                  Map
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/about" 
-                  className={pathname === '/about' ? 'text-green-600' : ''}
-                >
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/image" 
-                  className={pathname === '/image' ? 'text-green-600' : ''}
-                >
-                  Image
-                </Link>
-              </li>
-            </ul>
-          )}
+          {/* Center navigation buttons removed as requested */}
 
           {/* Right side - Profile / Dropdown (only if logged in) */}
           {isAuthenticated && (
@@ -90,7 +62,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, displayName }) => {
 
               {/* Profile Button with User Initial */}
               <Link href="/profile">
-                <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-700 hover:bg-green-800 text-white font-bold">
+                <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-700 hover:bg-green-800 text-white font-bold text-xl" >
                   {initialLetter}
                 </div>
               </Link>
@@ -119,6 +91,17 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, displayName }) => {
                         }`}
                       >
                         About
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/image"
+                        onClick={() => setMenuOpen(false)}
+                        className={`block px-4 py-2 hover:bg-green-100 ${
+                          pathname === '/image' ? 'text-green-600' : 'text-green-800'
+                        }`}
+                      >
+                        Camera
                       </Link>
                     </li>
                   </ul>

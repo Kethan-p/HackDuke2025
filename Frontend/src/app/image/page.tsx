@@ -4,29 +4,24 @@ import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { auth } from '../firebase';
 import { User } from 'firebase/auth';
-
-
-
+import Navbar from '../components/Navbar';
+import Image from 'next/image';
 
 function CameraReport() {
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-  
+
+  // Listen for auth state changes.
   useEffect(() => {
-      const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-        setUser(currentUser);
-      });
-      return () => unsubscribe();
-    }, []);
-
-    
-      
-
-  // Set the user's email (update this as needed)
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Request access to the camera when the component mounts.
   useEffect(() => {
@@ -75,17 +70,17 @@ function CameraReport() {
 
               // Create a File object from the Blob (to include a filename).
               const file = new File([blob], 'capture.png', { type: 'image/png' });
-              console.log(email);
               // Create FormData and append the image file.
               const formData = new FormData();
               formData.append('image', file);
-              formData.append('email', user!.email!);         // Assert that user.email is not null.
-              formData.append('lat', lat.toString());          // Convert the number to a string.
-              formData.append('lng', lng.toString());      
+              formData.append('email', user!.email!);
+              formData.append('lat', lat.toString());
+              formData.append('lng', lng.toString());
               const url = `${backendUrl}/create_report`;
 
               // Post the FormData to the backend using axios.
-              axios.post(url, formData, {
+              axios
+                .post(url, formData, {
                   headers: { 'Content-Type': 'multipart/form-data' },
                 })
                 .catch((err) => {
@@ -109,19 +104,47 @@ function CameraReport() {
   if (!user || !user.email) {
     return <p>Loading user information...</p>;
   }
-  const email = user.email;
-
 
   return (
-    <div>
-      <h2>Submit Invasive Plant Report</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {message && <p style={{ color: 'green' }}>{message}</p>}
-      <video ref={videoRef} autoPlay playsInline style={{ width: '400px' }} />
-      {/* Hidden canvas used only for capturing the snapshot */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      <br />
-      <button onClick={captureAndSubmit}>Capture and Submit Report</button>
+    <div className="min-h-screen relative bg-black">
+      {/* Fixed Navbar overlay */}
+      <div className="fixed top-0 left-0 right-0 z-20">
+        <Navbar
+          isAuthenticated={true}
+          displayName={user ? (user.displayName || user.email) : undefined}
+        />
+      </div>
+
+      {/* Fullscreen video container */}
+      <div className="w-full h-screen">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className="w-full h-full object-cover"
+        />
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+        {/* Optional overlay messages */}
+        {error && (
+          <div className="absolute top-16 left-1/2 transform -translate-x-1/2 text-red-600">
+            {error}
+          </div>
+        )}
+        {message && (
+          <div className="absolute top-16 left-1/2 transform -translate-x-1/2 text-green-600">
+            {message}
+          </div>
+        )}
+
+        {/* New capture button: a larger dark green circle with the camera image */}
+        <button
+          onClick={captureAndSubmit}
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-[104px] h-[104px] rounded-full bg-green-700 hover:bg-green-800 shadow-lg"
+        >
+          <Image src="/green_camera.png" alt="Capture Report" width={60} height={60} />
+        </button>
+      </div>
     </div>
   );
 }
