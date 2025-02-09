@@ -1,31 +1,39 @@
-Inspiration
+# Petal Path
+
+## Inspiration
 As four avid hikers who all enjoy spending time outdoors, we found that a common issue for local ecosystems is the spread of invasive plant species. In North Carolina, species such as Japanese stiltgrass and kudzu have become particularly problematic. Studies show that local areas invaded by species such as these can experience a 25–40% reduction in native plant diversity. We wanted to create a project that could make a real impact in the fight against harmful plants.
 
-What it does
-When hikers see plants they fail to recognize or think may be invasive, they can use the camera identification feature of the platform to identify what species a plant is and see if it is invasive. After invasive plants are flagged, they are marked down on our map interface so that users can see which trails have high densities of invasive species. This crowdsource data is made available to both users and to environmental organizations that can then begin to initiate removal processes. Once invasive plants are removed, they no longer appear on the map of flagged plants.
+## What It Does
+When hikers see plants they fail to recognize or think may be invasive, they can use the camera identification feature of the platform to determine the species and check if it is invasive. Once flagged, invasive plants are marked on our map interface so users can see which trails have high densities of these species. This crowdsourced data is available to both users and environmental organizations, which can then initiate removal processes. After invasive plants are removed, they no longer appear on the map.
 
-How we built it
-We built a firebase database that stores our user data and plant information. We then created a flask backend that communicates with the database and our API’s (GoogleMaps, Plant.ID, OpenAI) that we used for the plant identification website infrastructure.
+## How We Built It
+- **Database:** We built a Firebase database that stores our user data and plant information.
+- **Backend:** A Flask backend was created to communicate with the database and our APIs.
+- **APIs & Integrations:** We integrated with several APIs including Google Maps, Plant.ID, and OpenAI to support the plant identification feature and overall website infrastructure.
 
-Challenges we ran into
-Creating a good UI is a lot of work. One of our biggest challenges was getting the camera feature to work correctly and to get the website up and running. Early on, we had two different forms of page routing going on in the website at once and this was challenging to debug because we had to completely change the structure of our pages code.
+## Challenges We Ran Into
+Creating a polished UI was a significant challenge. One of our biggest hurdles was getting the camera feature to work correctly and ensuring the website was up and running smoothly. Initially, we had two different forms of page routing occurring simultaneously, which made debugging difficult and forced us to restructure our page code completely.
 
-Accomplishments that we're proud of
-We are very proud of how well we worked together as a team in this competition setting and how we partitioned different workflow features. We did a good job having distinct branches and we avoided disruptive merge conflicts that some of our team members have run into during past hackathons.
+## Accomplishments We're Proud Of
+- **Team Collaboration:** We worked exceptionally well together in a competitive setting, effectively partitioning workflow features.
+- **Version Control:** We maintained distinct branches and avoided disruptive merge conflicts, a challenge some of our team members faced in previous hackathons.
 
-What we learned
-the value of time
-hosting is hard
-a strong backend makes for a strong frontend
-communication of ideas
-division of labor
-What's next for Petal Path
-We would like to create mobile app for users and work on cleaning up the code. Eventually, we would like to partner with environmental organizations or even government offices like the EPA to make our crowdsource invasive plants data available for large scale removal efforts.
+## What We Learned
+- The value of time
+- Hosting is hard
+- A strong backend makes for a strong frontend
+- Communication of ideas
+- Division of labor
 
-Built With
-firebase
-flask
-google-cloud
-google-maps
-react
+## What's Next for Petal Path
+- **Mobile App:** We plan to create a mobile app for users.
+- **Code Cleanup:** We aim to clean up and optimize the codebase.
+- **Partnerships:** Our long-term goal is to partner with environmental organizations or government agencies (like the EPA) to leverage our crowdsourced invasive plant data for large-scale removal efforts.
+
+## Built With
+- Firebase
+- Flask
+- Google Cloud
+- Google Maps
+- React
 
