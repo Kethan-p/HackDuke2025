@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-# from flask_cors import CORS
+from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, firestore
 import prof as userprofile
@@ -8,16 +8,12 @@ import checkinvasive as ci
 import reports as rp
 from io import BytesIO
 from PIL import Image
+import os 
 
 app = Flask(__name__)
-# CORS(app)
+CORS(app)
 
-# Initialize Firebase Admin with your service account key.
-cred = credentials.Certificate("path/to/serviceAccountKey.json")  # <-- Update this path
-firebase_admin.initialize_app(cred)
-
-# Create a Firestore client.
-db = firestore.client()
+from firebase_client import db
 
 @app.route('/')
 def index():
@@ -27,7 +23,10 @@ def index():
     and pass them to the template.
     """
     markers = rp.getMarkers()
-    return render_template('index.html', markers=markers)
+    return jsonify({
+        "message": "Welcome to the Flask API",
+        "markers": markers
+    })
 
 @app.route('/create_report', methods=['POST'])
 def create_report():
@@ -35,7 +34,7 @@ def create_report():
     Processes a new invasive plant report by:
       1. Reading the image from the POST request.
       2. Ensuring the image is in JPEG or PNG format.
-      3. Creating a Firestore Blob from the (converted) image data.
+      3. Converting the image data to raw bytes.
       4. Passing a file-like object to the plant identification function.
       5. Storing the report in Firestore via the rp module.
     """
@@ -72,27 +71,26 @@ def create_report():
         image_for_plant = output
         # Use the converted bytes for storage.
         converted_data = output.getvalue()
-        image_blob = firestore.Blob(converted_data)
+        image_blob = converted_data  # Store raw bytes in Firestore.
     else:
         # The image is already JPEG or PNG.
         image_for_plant = BytesIO(image_data)
-        image_blob = firestore.Blob(image_data)
+        image_blob = image_data  # Store raw bytes in Firestore.
 
     # Pass the file-like object to the plant identification function.
     plantResult = idplant.getPlant(image_for_plant)
     if not plantResult[0]:
         return jsonify({"error": "Not a plant"}), 400
 
-    # Check invasive information.
     invasiveResult = ci.check_invasive_plant(plantResult[1], lat, lng)
     if invasiveResult[0] == "Not a plant":
         return jsonify({"error": "Not a plant"}), 400
 
     # Store the report in Firestore via your reports module.
     rp.storeInfo(
-        user_email=email,
+        User_Email=email,
         plant_name=plantResult[1],
-        image=image_blob,  # Firestore Blob (converted or original).
+        image_data=image_blob,  # Save the raw bytes.
         lat=lat,
         lng=lng,
         description=invasiveResult[1],

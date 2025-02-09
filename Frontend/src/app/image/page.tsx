@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { auth } from '../firebase';
 import { User } from 'firebase/auth';
-import Navbar from '../components/Navbar';
 
 
 
@@ -15,6 +14,7 @@ function CameraReport() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [user, setUser] = useState<User | null>(null);
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
   
   useEffect(() => {
       const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -75,18 +75,18 @@ function CameraReport() {
 
               // Create a File object from the Blob (to include a filename).
               const file = new File([blob], 'capture.png', { type: 'image/png' });
-
+              console.log(email);
               // Create FormData and append the image file.
               const formData = new FormData();
               formData.append('image', file);
               formData.append('email', user!.email!);         // Assert that user.email is not null.
               formData.append('lat', lat.toString());          // Convert the number to a string.
               formData.append('lng', lng.toString());      
-              const url = `/create_report`;
+              const url = `${backendUrl}/create_report`;
 
               // Post the FormData to the backend using axios.
               axios.post(url, formData, {
-                  headers: { 'Content-Type': '/form-data' },
+                  headers: { 'Content-Type': 'multipart/form-data' },
                 })
                 .catch((err) => {
                   console.error('Error submitting report:', err);
