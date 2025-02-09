@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import { auth } from '../firebase';
 import { User } from 'firebase/auth';
+import Link from 'next/link';
+import Image from 'next/image';
 
 declare global {
   interface Window {
@@ -342,6 +344,7 @@ const MapPage: React.FC = () => {
       loadMapScript();
     }
 
+    // Cleanup on unmount
     return () => {
       clustersRef.current.forEach((cluster) => {
         if (cluster.marker) cluster.marker.setMap(null);
@@ -356,7 +359,7 @@ const MapPage: React.FC = () => {
       <div className="fixed top-0 left-0 right-0 z-20">
         <Navbar
           isAuthenticated={true}
-          displayName={user ? (user.displayName || user.email) : undefined}
+          displayName={user ? user.displayName || user.email : undefined}
         />
       </div>
 
@@ -379,6 +382,14 @@ const MapPage: React.FC = () => {
           ref={mapRef}
           className="w-full h-full border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden bg-white relative z-0"
         />
+
+        {/* Camera button in the bottom-left corner */}
+        <Link href="/image">
+          <div className="absolute bottom-4 left-4 z-30">
+            {/* Example icon usage with Next/Image */}
+            <Image src="/camera.png" alt="Camera" width={120} height={120} />
+          </div>
+        </Link>
       </div>
     </>
   );
