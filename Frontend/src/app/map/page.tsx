@@ -1,7 +1,14 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from 'react';
 import Navbar from '../components/Navbar';
+import PlantCard from '../plantcard';
+import axios from 'axios';
 import { auth } from '../firebase';
 import { User } from 'firebase/auth';
 import Link from 'next/link';
@@ -13,6 +20,18 @@ declare global {
     initGoogleMap?: () => void;
   }
 }
+interface MarkerVars {
+  lat: string;
+  lng: string;
+  image: string | null; // Adjust this if image is always provided or optional.
+  desc: string | null;  // Adjust this if description is always provided or optional.
+}
+interface Marker {
+  key: string;
+  vars: MarkerVars;
+}
+
+// ────────────── Existing Interfaces for Trails & Clusters ──────────────
 
 interface Trail {
   polyline: google.maps.Polyline;
@@ -41,8 +60,23 @@ interface OSMElement {
   };
 }
 
+// ────────────── New Interface for Invasive Plant Markers ──────────────
+
+interface PlantMarkerData {
+  key: string;
+  lat: string;
+  lng: string;
+  image: string | null;
+  desc: string | null;
+  marker: google.maps.Marker;
+}
+
+// ────────────── Constants ──────────────
+
 const CLUSTER_RADIUS = 1000;
 const DEFAULT_ZOOM = 13;
+
+// ────────────── MapPage Component ──────────────
 
 const MapPage: React.FC = () => {
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -53,8 +87,20 @@ const MapPage: React.FC = () => {
   const activeClusterRef = useRef<TrailCluster | null>(null);
   const activeInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
 
-  // Add user state to hold the current authenticated user.
+  // State for authenticated user.
   const [user, setUser] = useState<User | null>(null);
+
+  // State for the currently selected invasive plant marker.
+  const [selectedPlant, setSelectedPlant] = useState<{
+    name: string;
+    image: string;
+    latitude: string;
+    longitude: string;
+    description: string;
+  } | null>(null);
+
+  // A ref to store all invasive plant markers (so we can remove them later).
+  const plantMarkersRef = useRef<PlantMarkerData[]>([]);
 
   // Listen for auth state changes.
   useEffect(() => {
@@ -64,7 +110,9 @@ const MapPage: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Returns a complete icon always as a google.maps.Symbol
+  // ────────────── Utility Functions ──────────────
+
+  // Returns a symbol for hiking trails.
   const getHikingIcon = useCallback((count: number): google.maps.Symbol => {
     return {
       path: window.google!.maps.SymbolPath.CIRCLE,
@@ -100,13 +148,13 @@ const MapPage: React.FC = () => {
     trails.forEach((trail) => {
       let addedToCluster = false;
 
-      // Try to add to an existing cluster
+      // Try to add to an existing cluster.
       for (const cluster of clusters) {
         const distance = haversineDistance(trail.midPoint, cluster.center);
         if (distance < CLUSTER_RADIUS) {
           cluster.trails.push(trail);
           addedToCluster = true;
-          // Update cluster center to the average position
+          // Update cluster center to the average position.
           cluster.center = {
             lat: (cluster.center.lat + trail.midPoint.lat) / 2,
             lng: (cluster.center.lng + trail.midPoint.lng) / 2,
@@ -115,7 +163,7 @@ const MapPage: React.FC = () => {
         }
       }
 
-      // If not added, create a new cluster
+      // If not added, create a new cluster.
       if (!addedToCluster) {
         clusters.push({
           center: trail.midPoint,
@@ -190,6 +238,9 @@ const MapPage: React.FC = () => {
     [getHikingIcon]
   );
 
+  // ────────────── Fetching Data Functions ──────────────
+
+  // Fetch hiking trails from OpenStreetMap.
   const fetchTrailsFromOSM = useCallback(async () => {
     if (!mapInstanceRef.current || !window.google?.maps) return;
 
@@ -204,14 +255,12 @@ const MapPage: React.FC = () => {
     `;
 
     try {
-      const response = await fetch(
+      const response = await axios.get(
         `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(
           overpassQuery
         )}`
       );
-      if (!response.ok) throw new Error('Network response failed');
-
-      const data = await response.json();
+      const data = response.data;
       if (!data.elements?.length) {
         setError('No hiking trails found in this area');
         return;
@@ -284,7 +333,7 @@ const MapPage: React.FC = () => {
         });
 
         marker.addListener('click', () => {
-          // Close any previously open infoWindow
+          // Close any previously open infoWindow.
           if (activeInfoWindowRef.current) {
             activeInfoWindowRef.current.close();
           }
@@ -293,7 +342,7 @@ const MapPage: React.FC = () => {
           activeInfoWindowRef.current = infoWindow;
         });
 
-        // Optionally, clear the active infoWindow ref when it is closed by the user
+        // Clear the active infoWindow ref when it is closed.
         infoWindow.addListener('closeclick', () => {
           activeInfoWindowRef.current = null;
         });
@@ -308,6 +357,52 @@ const MapPage: React.FC = () => {
     }
   }, [createClusters, handleClusterClick, getHikingIcon]);
 
+  // ────────────── Fetch Invasive Plant Markers Using Axios ──────────────
+
+  const fetchPlantMarkers = useCallback(async () => {
+    if (!mapInstanceRef.current || !window.google?.maps) return;
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  
+    try {
+      const response = await axios.get(`${backendUrl}/getMarkers`);
+      const markersData = response.data;
+      console.log('Plant markers:', markersData);
+      markersData.forEach((markerData: Marker) => {
+        const { key, vars } = markerData;
+        const { lat, lng, image, desc } = vars;
+        // Ensure we have valid numbers for coordinates.
+        const position = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        const marker = new window.google!.maps.Marker({
+          position,
+          map: mapInstanceRef.current,
+          title: key,
+          // A custom green marker icon; adjust as desired.
+          icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+        });
+        // When clicked, display the PlantCard with details.
+        marker.addListener('click', () => {
+          setSelectedPlant({
+            name: key,
+            image: image ? image : '',
+            latitude: lat.toString(),
+            longitude: lng.toString(),
+            description: desc? desc : '',
+          });
+        });
+        plantMarkersRef.current.push({ key, lat, lng, image, desc, marker });
+      });
+    }catch (error: unknown) {
+        console.error('Error fetching plant markers:', error);
+        if (error instanceof Error) {
+          setError('Error fetching plant markers: ' + error.message);
+        } else {
+          setError('Error fetching plant markers: An unknown error occurred.');
+        }
+      }
+  }, []);
+
+  // ────────────── Initialize the Map ──────────────
+
   const initMap = useCallback(() => {
     if (!mapRef.current || !window.google?.maps) return;
     try {
@@ -317,12 +412,14 @@ const MapPage: React.FC = () => {
         mapTypeControl: false,
         streetViewControl: false,
       });
+      // Load both hiking trails and invasive plant markers.
       fetchTrailsFromOSM();
+      fetchPlantMarkers();
       setIsLoading(false);
     } catch {
       setError('Failed to initialize Google Maps');
     }
-  }, [fetchTrailsFromOSM]);
+  }, [fetchPlantMarkers, fetchTrailsFromOSM]);
 
   useEffect(() => {
     const loadMapScript = () => {
@@ -346,9 +443,14 @@ const MapPage: React.FC = () => {
 
     // Cleanup on unmount
     return () => {
+      // Cleanup clusters and trails.
       clustersRef.current.forEach((cluster) => {
         if (cluster.marker) cluster.marker.setMap(null);
         cluster.trails.forEach((trail) => trail.polyline.setMap(null));
+      });
+      // Cleanup plant markers.
+      plantMarkersRef.current.forEach((plant) => {
+        plant.marker.setMap(null);
       });
     };
   }, [initMap]);
@@ -365,7 +467,7 @@ const MapPage: React.FC = () => {
 
       {/* Full-screen container for map and overlays */}
       <div className="relative h-screen bg-green-100">
-        {/* Optional loading and error messages as overlays */}
+        {/* Loading and error messages */}
         {isLoading && !error && (
           <div className="absolute z-10 top-16 left-1/2 transform -translate-x-1/2 text-lg text-gray-600">
             Loading map...
@@ -377,12 +479,39 @@ const MapPage: React.FC = () => {
           </div>
         )}
 
-        {/* Map container takes the full viewport height */}
+        {/* Map container */}
         <div
           ref={mapRef}
           className="w-full h-full border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden bg-white relative z-0"
         />
 
+        {/* Render the PlantCard overlay when a plant marker is clicked */}
+        {selectedPlant && (
+          <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
+            <PlantCard
+              name={selectedPlant.name}
+              image={selectedPlant.image}
+              latitude={selectedPlant.latitude}
+              longitude={selectedPlant.longitude}
+              description={selectedPlant.description}
+              onClose={() => setSelectedPlant(null)}
+              onDelete={(name: string, latitude: string, longitude: string) => {
+                // Remove the marker from the map.
+                const index = plantMarkersRef.current.findIndex(
+                  (m) =>
+                    m.key === name &&
+                    m.lat.toString() === latitude &&
+                    m.lng.toString() === longitude
+                );
+                if (index !== -1) {
+                  plantMarkersRef.current[index].marker.setMap(null);
+                  plantMarkersRef.current.splice(index, 1);
+                }
+                setSelectedPlant(null);
+              }}
+            />
+          </div>
+        )}
         {/* Camera button in the bottom-left corner */}
         <Link href="/image">
           <div className="absolute bottom-4 left-4 z-30">
