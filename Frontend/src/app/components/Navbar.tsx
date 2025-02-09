@@ -30,95 +30,106 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, displayName }) => {
         />
       </Link>
 
-      {/* ✅ Ensure NOTHING appears on the right side if on Login Page */}
+      {/* Only render navigation items if we're NOT on the login page */}
       {pathname !== '/login' && (
         <>
-          {/* Center - Navigation Links (Only Show After Login) */}
+          {/* Center - Navigation Links (only if logged in) */}
           {isAuthenticated && (
             <ul className="hidden md:flex space-x-6 text-green-800 font-semibold">
               <li>
-                <Link href="/map" className={pathname === '/map' ? 'text-green-600' : ''}> Map </Link>
+                <Link 
+                  href="/map" 
+                  className={pathname === '/map' ? 'text-green-600' : ''}
+                >
+                  Map
+                </Link>
               </li>
               <li>
-                <Link href="/about" className={pathname === '/about' ? 'text-green-600' : ''}>
+                <Link 
+                  href="/about" 
+                  className={pathname === '/about' ? 'text-green-600' : ''}
+                >
                   About
                 </Link>
               </li>
               <li>
-                <Link href="/image" className={pathname === '/image' ? 'text-green-600' : ''}>
+                <Link 
+                  href="/image" 
+                  className={pathname === '/image' ? 'text-green-600' : ''}
+                >
                   Image
                 </Link>
               </li>
             </ul>
           )}
-      {/* Right side (do not show anything on the login page) */}
-      {pathname !== '/login' && isAuthenticated && (
-        <div className="relative flex items-center space-x-4">
-          {/* Dropdown Toggle Button - A clean V-shaped icon */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="focus:outline-none"
-            aria-label="Toggle navigation menu"
-          >
-            <svg
-              className="w-4 h-4 text-green-700 hover:text-green-800"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              viewBox="0 0 20 10"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* The polyline creates two lines meeting at a right angle
-                  with rounded upper ends and the vertex pointing downwards */}
-              <polyline
-                points="0,0 10,10 20,0"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
 
-          {/* Profile Button with User Initial */}
-          <Link href="/profile">
-            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-700 hover:bg-green-800 text-white font-bold">
-              {initialLetter}
-            </div>
-          </Link>
+          {/* Right side - Profile / Dropdown (only if logged in) */}
+          {isAuthenticated && (
+            <div className="relative flex items-center space-x-4">
+              {/* Dropdown Toggle Button (V-shaped icon) */}
+              <button
+                onClick={() => setMenuOpen((prev) => !prev)}
+                className="focus:outline-none"
+                aria-label="Toggle navigation menu"
+              >
+                <svg
+                  className="w-4 h-4 text-green-700 hover:text-green-800"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  viewBox="0 0 20 10"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <polyline
+                    points="0,0 10,10 20,0"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
 
-          {/* Dropdown Menu (appears beneath the right-side group) */}
-          {menuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-green-700 rounded-md shadow-lg z-50">
-              <ul>
-                <li>
-                  <Link
-                    href="/map"
-                    onClick={() => setMenuOpen(false)}
-                    className={`block px-4 py-2 hover:bg-green-100 ${
-                      pathname === '/map' ? 'text-green-600' : 'text-green-800'
-                    }`}
-                  >
-                    Map
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/about"
-                    onClick={() => setMenuOpen(false)}
-                    className={`block px-4 py-2 hover:bg-green-100 ${
-                      pathname === '/about' ? 'text-green-600' : 'text-green-800'
-                    }`}
-                  >
-                    About
-                  </Link>
-                </li>
-              </ul>
+              {/* Profile Button with User Initial */}
+              <Link href="/profile">
+                <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-700 hover:bg-green-800 text-white font-bold">
+                  {initialLetter}
+                </div>
+              </Link>
+
+              {/* Dropdown Menu */}
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-green-700 rounded-md shadow-lg z-50">
+                  <ul>
+                    <li>
+                      <Link
+                        href="/map"
+                        onClick={() => setMenuOpen(false)}
+                        className={`block px-4 py-2 hover:bg-green-100 ${
+                          pathname === '/map' ? 'text-green-600' : 'text-green-800'
+                        }`}
+                      >
+                        Map
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/about"
+                        onClick={() => setMenuOpen(false)}
+                        className={`block px-4 py-2 hover:bg-green-100 ${
+                          pathname === '/about' ? 'text-green-600' : 'text-green-800'
+                        }`}
+                      >
+                        About
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
     </nav>
   );
 };
 
 export default Navbar;
-
