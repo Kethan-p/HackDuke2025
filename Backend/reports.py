@@ -4,6 +4,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
+from google.cloud.firestore_v1 import FieldFilter
 
 # Load environment variables from .env file.
 load_dotenv()
@@ -105,6 +106,9 @@ def getMarkerInfo(lat, lng, NameOfPlant):
         print(f"Error retrieving marker information: {e}")
         return jsonify({'error': f"Error retrieving marker information: {e}"}), 500
 
+import base64
+from google.cloud.firestore_v1 import FieldFilter
+
 def getMarkers():
     """
     Queries the 'plant_info' collection in Firestore and returns a list of POI dictionaries for invasive markers
@@ -112,23 +116,25 @@ def getMarkers():
 
     Each POI dictionary is in the form:
       {
-        "key": <string>,         # The plant name (or document ID if plant_name is missing)
-        "location": {
-          "lat": <float>,        # Latitude value
-          "lng": <float>         # Longitude value
-        }
+          "key": <string>,   # The plant name (or document ID if plant_name is missing)
+          "vars": {
+              "lat": <float>,    # Latitude value
+              "lng": <float>,    # Longitude value
+              "image": <string>, # Base64-encoded image data
+              "desc": <string>   # Description
+          }
       }
 
     Only documents with a non-empty 'invasive_info' field and 'removed' == False are returned.
     """
     try:
         markers_ref = db.collection('plant_info')
-        # Query for documents where removed is False.
-        # We assume that a non-empty invasive_info (i.e. greater than empty string) indicates an invasive plant.
-        query = markers_ref.where('removed', '==', False).where('invasive_info', '>', '')
+        # If invasive_info is stored as a boolean, use True. If it is a string, adjust accordingly.
+        query = markers_ref.where(filter=FieldFilter("removed", "==", False)) \
+                           .where(filter=FieldFilter("invasive_info", "==", True))
         docs = query.stream()
-
         poi_list = []
+
         for doc in docs:
             data = doc.to_dict()
 
@@ -136,24 +142,36 @@ def getMarkers():
             key = data.get('plant_name', doc.id)
             lat = data.get('lat')
             lng = data.get('lng')
+            image = data.get('image')
+            desc = data.get('description')
 
             # Skip if coordinates are missing.
             if lat is None or lng is None:
                 continue
 
+            # If the image data is in bytes, convert it to a base64 string.
+            if isinstance(image, bytes):
+                image = base64.b64encode(image).decode('utf-8')
+
             poi = {
                 "key": key,
-                "location": {
+                "vars": {
                     "lat": float(lat),
-                    "lng": float(lng)
+                    "lng": float(lng),
+                    "image": image,
+                    "desc": desc
                 }
             }
             poi_list.append(poi)
+            print("Added POI:", poi)
         
         return poi_list
+
     except Exception as e:
         print(f"Error retrieving markers: {e}")
-        return jsonify({'error': f"Error retrieving markers: {e}"}), 500
+        return {"error": f"Error retrieving markers: {e}"}
+
+   
 
 def markMarkerAsRemoved(marker_id, is_removed=True):
     """

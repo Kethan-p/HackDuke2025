@@ -181,7 +181,14 @@ def get_markers():
     Returns a list of invasive plant markers that have not been marked as removed.
     Each marker is formatted as a point of interest (POI) with a key and location.
     """
+    print("Getting markers")
     markers = rp.getMarkers()
+    print("Markers retrieved:", markers)
+    
+    # If markers contains an error key, return it with a 500 status code.
+    if isinstance(markers, dict) and "error" in markers:
+        return jsonify(markers), 500
+    
     return jsonify(markers)
 
 @app.route('/getProfileInfo', methods=['GET'])

@@ -18,6 +18,16 @@ declare global {
     initGoogleMap?: () => void;
   }
 }
+interface MarkerVars {
+  lat: string;
+  lng: string;
+  image: string | null; // Adjust this if image is always provided or optional.
+  desc: string | null;  // Adjust this if description is always provided or optional.
+}
+interface Marker {
+  key: string;
+  vars: MarkerVars;
+}
 
 // ────────────── Existing Interfaces for Trails & Clusters ──────────────
 
@@ -52,10 +62,10 @@ interface OSMElement {
 
 interface PlantMarkerData {
   key: string;
-  lat: number;
-  lng: number;
-  image: string;
-  desc: string;
+  lat: string;
+  lng: string;
+  image: string | null;
+  desc: string | null;
   marker: google.maps.Marker;
 }
 
@@ -352,9 +362,10 @@ const MapPage: React.FC = () => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
   
     try {
-      const response = await axios.get(`${backendUrl}/get_markers`);
+      const response = await axios.get(`${backendUrl}/getMarkers`);
       const markersData = response.data;
-      markersData.forEach((markerData: any) => {
+      console.log('Plant markers:', markersData);
+      markersData.forEach((markerData: Marker) => {
         const { key, vars } = markerData;
         const { lat, lng, image, desc } = vars;
         // Ensure we have valid numbers for coordinates.
@@ -370,18 +381,22 @@ const MapPage: React.FC = () => {
         marker.addListener('click', () => {
           setSelectedPlant({
             name: key,
-            image: image,
+            image: image ? image : '',
             latitude: lat.toString(),
             longitude: lng.toString(),
-            description: desc,
+            description: desc? desc : '',
           });
         });
         plantMarkersRef.current.push({ key, lat, lng, image, desc, marker });
       });
-    } catch (error: any) {
-      console.error('Error fetching plant markers:', error);
-      setError('Error fetching plant markers: ' + error.message);
-    }
+    }catch (error: unknown) {
+        console.error('Error fetching plant markers:', error);
+        if (error instanceof Error) {
+          setError('Error fetching plant markers: ' + error.message);
+        } else {
+          setError('Error fetching plant markers: An unknown error occurred.');
+        }
+      }
   }, []);
 
   // ────────────── Initialize the Map ──────────────
