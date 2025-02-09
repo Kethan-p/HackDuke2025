@@ -39,6 +39,11 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
                   About
                 </Link>
               </li>
+              <li>
+                <Link href="/image" className={pathname === '/image' ? 'text-green-600' : ''}>
+                  Image
+                </Link>
+              </li>
             </ul>
           )}
 
