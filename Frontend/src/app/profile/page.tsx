@@ -58,7 +58,8 @@ const ProfilePage: React.FC = () => {
 
   return (
     <>
-      <Navbar isAuthenticated={true} />
+      {/* Pass displayName (or email as a fallback) so the Navbar can show the initial */}
+      <Navbar isAuthenticated={true} displayName={user.displayName || user.email} />
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-green-100">
         <h2 className="text-3xl font-bold text-green-800 mb-6">Your Profile</h2>
         <div className="bg-white p-8 rounded-xl shadow-xl max-w-md w-full border border-green-700">
@@ -83,4 +84,4 @@ const ProfilePage: React.FC = () => {
   );
 };
 
-export default ProfilePage; 
+export default ProfilePage;
