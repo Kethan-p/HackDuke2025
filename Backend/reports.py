@@ -136,6 +136,8 @@ def getMarkers():
             key = data.get('plant_name', doc.id)
             lat = data.get('lat')
             lng = data.get('lng')
+            image = data.get('image')
+            desc = data.get('description')
 
             # Skip if coordinates are missing.
             if lat is None or lng is None:
@@ -143,10 +145,13 @@ def getMarkers():
 
             poi = {
                 "key": key,
-                "location": {
+                "vars": {
                     "lat": float(lat),
-                    "lng": float(lng)
+                    "lng": float(lng),
+                    "image": image,
+                    "desc": desc
                 }
+
             }
             poi_list.append(poi)
         
