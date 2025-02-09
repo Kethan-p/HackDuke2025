@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { auth } from '../firebase';
-import { signOut, User } from 'firebase/auth';
+import { User } from 'firebase/auth';
 
 
 
@@ -19,14 +19,10 @@ function CameraReport() {
       return () => unsubscribe();
     }, []);
 
-    if (!user || !user.email) {
-        setError("User email is not available.");
-        return;
-    }
+    
       
 
   // Set the user's email (update this as needed)
-  const email = user.email;
 
   // Request access to the camera when the component mounts.
   useEffect(() => {
@@ -87,9 +83,6 @@ function CameraReport() {
               axios.post(url, formData, {
                   headers: { 'Content-Type': 'multipart/form-data' },
                 })
-                .then((response) => {
-                  setMessage('Report submitted successfully!');
-                })
                 .catch((err) => {
                   console.error('Error submitting report:', err);
                   setError('Error submitting report: ' + err.message);
@@ -107,6 +100,12 @@ function CameraReport() {
       setError('Geolocation is not supported by your browser.');
     }
   };
+
+  if (!user || !user.email) {
+    return <p>Loading user information...</p>;
+  }
+  const email = user.email;
+
 
   return (
     <div>
