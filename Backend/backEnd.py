@@ -6,6 +6,8 @@ import prof as userprofile
 import idplant as idplant
 import checkinvasive as ci
 import reports as rp
+from io import BytesIO
+from PIL import Image
 
 app = Flask(__name__)
 CORS(app)
@@ -32,25 +34,46 @@ def index():
 def create_report(email, lat, lng):
     """
     Processes a new invasive plant report by:
-      1. Reading the image from the POST request (sent from a React app).
-      2. Converting it to a Firestore Blob.
-      3. Passing it to the plant identification and invasive check functions.
-      4. Storing the report in Firestore via the rp module.
+      1. Reading the image from the POST request.
+      2. Ensuring the image is in JPEG or PNG format.
+      3. Creating a Firestore Blob from the (converted) image data.
+      4. Passing a file-like object to the plant identification function.
+      5. Storing the report in Firestore via the rp module.
     """
-    # Expect the image file to be sent as part of the request files (with key 'image')
+    # Retrieve the image file from the request (expecting key 'image').
     image_file = request.files.get("image")
     if not image_file:
         return jsonify({"error": "No image provided"}), 400
 
-    # Read the binary data from the image file.
+    # Read the image file data.
     image_data = image_file.read()
 
-    # Create a Firestore Blob from the binary image data.
-    image_blob = firestore.Blob(image_data)
+    # Use BytesIO to work with the image data.
+    image_stream = BytesIO(image_data)
+    try:
+        img = Image.open(image_stream)
+    except Exception as e:
+        return jsonify({"error": "Invalid image file"}), 400
 
-    # Identify the plant using the image data.
-    # Note: idplant.getPlant must be modified to accept image_blob (or raw bytes) instead of a file path.
-    plantResult = idplant.getPlant(image_file)
+    # Check the image format. If it's not JPEG or PNG, convert it to JPEG.
+    if img.format not in ["JPEG", "PNG"]:
+        output = BytesIO()
+        # JPEG does not support transparency so convert the image to RGB if needed.
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        img.save(output, format="JPEG")
+        output.seek(0)
+        image_for_plant = output
+        # Use the converted bytes for storage.
+        converted_data = output.getvalue()
+        image_blob = firestore.Blob(converted_data)
+    else:
+        # The image is already JPEG or PNG.
+        image_for_plant = BytesIO(image_data)
+        image_blob = firestore.Blob(image_data)
+
+    # Now, pass the file-like object (guaranteed to be JPEG or PNG) to the plant identification function.
+    plantResult = idplant.getPlant(image_for_plant)
     if not plantResult[0]:
         return jsonify({"error": "Not a plant"}), 400
 
@@ -59,12 +82,11 @@ def create_report(email, lat, lng):
     if invasiveResult[0] == "Not a plant":
         return jsonify({"error": "Not a plant"}), 400
 
-    # Store the report in Firestore using your reports module.
-    # rp.storeInfo should be updated to accept the image Blob.
+    # Store the report in Firestore via your reports module.
     rp.storeInfo(
         user_email=email,
         plant_name=plantResult[1],
-        image=image_blob,
+        image=image_blob,  # This is the Firestore Blob (converted or original).
         lat=lat,
         lng=lng,
         description=invasiveResult[1],
@@ -72,6 +94,8 @@ def create_report(email, lat, lng):
     )
     
     return redirect(url_for('index'))
+
+
 @app.route('/getUserReportsInfo/<email>', methods=['GET'])
 def get_user_reports_info(email):
     """
@@ -87,29 +111,6 @@ def get_marker_info(lat, lng, nameOfPlant):
     """
     info = rp.getMarkerInfo(lat, lng, nameOfPlant)
     return jsonify(info)
-
-@app.route('/getPlantInfoandCreateReport/<img_path>/<lat>/<lng>/email', methods=['GET'])
-def get_plant_info(img_path, lat, lng,email):
-    """
-    Alternative endpoint to process a plant image:
-      1. Identify the plant.
-      2. Check if it is invasive.
-      3. Add a map marker.
-      4. Store the report in Firestore.
-    
-    Since no user email is provided here, a default email is used.
-    """
-    plantResult = idplant.getPlant(img_path)
-    if plantResult[0]:
-        invasiveResult = ci.check_invasive_plant(plantResult[1], lat, lng)
-    else:
-        return jsonify({"error": "Not a plant"}), 400
-
-    if invasiveResult[0] == "Not a plant":
-        return jsonify({"error": "Not a plant"}), 400
-    # Use a default email since none is provided.
-    rp.storeInfo(email, plantResult[1], img_path, lat, lng, invasiveResult[1], invasiveResult[0])
-    return jsonify({"message": "Plant info stored successfully"})
 
 @app.route('/get_marker/<marker_id>', methods=['GET'])
 def get_marker(marker_id):

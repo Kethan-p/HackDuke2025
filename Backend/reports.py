@@ -42,7 +42,7 @@ def storeInfo(User_Email, plant_name, image_data, lat, lng, description, invasiv
         plant_data = {
             'userEmail': User_Email,
             'plant_name': plant_name,
-            'image': image_blob,  # Store the Firestore Blob in the document.
+            'image': image_data,  # Store the Firestore Blob in the document.
             'lat': str(lat),      # Storing as string; conversion happens on retrieval.
             'lng': str(lng),
             'description': description,
