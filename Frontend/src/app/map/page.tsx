@@ -11,6 +11,8 @@ import PlantCard from '../plantcard';
 import axios from 'axios';
 import { auth } from '../firebase';
 import { User } from 'firebase/auth';
+import Link from 'next/link';
+import Image from 'next/image';
 
 declare global {
   interface Window {
@@ -439,6 +441,7 @@ const MapPage: React.FC = () => {
       loadMapScript();
     }
 
+    // Cleanup on unmount
     return () => {
       // Cleanup clusters and trails.
       clustersRef.current.forEach((cluster) => {
@@ -458,7 +461,7 @@ const MapPage: React.FC = () => {
       <div className="fixed top-0 left-0 right-0 z-20">
         <Navbar
           isAuthenticated={true}
-          displayName={user ? (user.displayName || user.email) : undefined}
+          displayName={user ? user.displayName || user.email : undefined}
         />
       </div>
 
@@ -509,6 +512,13 @@ const MapPage: React.FC = () => {
             />
           </div>
         )}
+        {/* Camera button in the bottom-left corner */}
+        <Link href="/image">
+          <div className="absolute bottom-4 left-4 z-30">
+            {/* Example icon usage with Next/Image */}
+            <Image src="/camera.png" alt="Camera" width={120} height={120} />
+          </div>
+        </Link>
       </div>
     </>
   );

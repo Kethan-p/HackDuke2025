@@ -102,13 +102,12 @@ def create_report():
 @app.route('/getUserReportsInfo', methods=['GET'])
 def get_user_reports_info():
     """
-    Returns all reports for the given user (based on email) as JSON.
-    Expects the email to be provided as a query parameter.
-    Example: /getUserReportsInfo?email=user@example.com
+    Example: GET /getUserReportsInfo?email=user@example.com
     """
     email = request.args.get("email")
     if not email:
         return jsonify({"error": "Missing email"}), 400
+
     return jsonify(rp.getUserReportsInfo(email))
 
 @app.route('/getMarkerInfo', methods=['GET'])
