@@ -1,4 +1,7 @@
+'use client';
+
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import Navbar from '../components/Navbar';
 
 declare global {
   interface Window {
@@ -335,24 +338,27 @@ const MapPage: React.FC = () => {
   }, [initMap]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-green-100">
-      <h2 className="text-3xl font-bold text-green-800 mb-6">Durham Hiking Trails</h2>
-      {isLoading && !error && (
-        <div className="text-lg text-gray-600 mb-4">Loading map...</div>
-      )}
-      {error && (
-        <div className="text-red-600 mb-4">
-          {error} - Please try refreshing the page
+    <>
+      <Navbar isAuthenticated={true} />
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-green-100 mt-16">
+        <h2 className="text-3xl font-bold text-green-800 mb-6">Durham Hiking Trails</h2>
+        {isLoading && !error && (
+          <div className="text-lg text-gray-600 mb-4">Loading map...</div>
+        )}
+        {error && (
+          <div className="text-red-600 mb-4">
+            {error} - Please try refreshing the page
+          </div>
+        )}
+        <div className="mb-4 text-sm text-gray-600">
+          Click cluster markers to explore trails
         </div>
-      )}
-      <div className="mb-4 text-sm text-gray-600">
-        Click cluster markers to explore trails
+        <div
+          ref={mapRef}
+          className="w-full max-w-5xl h-[600px] border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden bg-white"
+        />
       </div>
-      <div
-        ref={mapRef}
-        className="w-full max-w-5xl h-[600px] border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden bg-white"
-      />
-    </div>
+    </>
   );
 };
 

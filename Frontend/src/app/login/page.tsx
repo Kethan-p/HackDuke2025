@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -11,7 +11,7 @@ import { auth } from '../firebase';
 import Navbar from '../components/Navbar'; // ✅ Import the Navbar
 
 const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // ✅ Add missing state variables
   const [email, setEmail] = useState<string>('');
@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
         );
         console.log('User signed in:', userCredential.user);
       }
-      navigate('/map');
+      router.push('/map');
     } catch (error: unknown) {
       let errorMessage = 'An error occurred';
       if (error instanceof Error) {
