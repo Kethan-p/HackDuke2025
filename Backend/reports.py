@@ -4,6 +4,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
+import base64
 
 # Load environment variables from .env file.
 load_dotenv()
@@ -51,12 +52,6 @@ def storeInfo(User_Email, plant_name, image_data, lat, lng, description, invasiv
 def getUserReportsInfo(email):
     """
     Retrieves user reports (plant info) based on the user's email.
-
-    Parameters:
-        email (str): The user's email.
-
-    Returns:
-        A list of plant information dictionaries or a JSON error response.
     """
     users_ref = db.collection('plant_info') 
     query = users_ref.where('userEmail', '==', email).stream()
@@ -65,12 +60,26 @@ def getUserReportsInfo(email):
     for doc in query:
         data = doc.to_dict()
         data["id"] = doc.id  
+        
+        # If you have a field "image" containing raw bytes, convert it to Base64
+        if "image" in data and data["image"] is not None:
+            # Convert to base64 string
+            base64_str = base64.b64encode(data["image"]).decode('utf-8')
+            
+            # Option A: Store it in a new field that your frontend will use
+            data["img_path"] = f"data:image/png;base64,{base64_str}"
+            
+            # Optionally remove the original 'image' bytes field
+            del data["image"]
+
         user_data.append(data)
 
     if user_data:
+        # Return a list of dictionaries
         return user_data
     else:
-        return jsonify({'error': 'User not found'}), 404
+        # If no documents found for that user
+        return {'error': 'User not found'}, 404
 
 def getMarkerInfo(lat, lng, NameOfPlant):
     """
