@@ -2,8 +2,13 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Navbar from '../components/Navbar';
+import PlantCard from '../plantcard';
+
 import { auth } from '../firebase';
 import { User } from 'firebase/auth';
+import axios from 'axios';
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
 
 declare global {
   interface Window {
@@ -11,6 +16,19 @@ declare global {
     initGoogleMap?: () => void;
   }
 }
+
+interface PlantMarkerData {
+  key: string;
+  lat: number;
+  lng: number;
+  image: string;
+  desc: string;
+  marker: google.maps.Marker;
+}
+
+
+
+
 
 interface Trail {
   polyline: google.maps.Polyline;
@@ -54,6 +72,16 @@ const MapPage: React.FC = () => {
   // Add user state to hold the current authenticated user.
   const [user, setUser] = useState<User | null>(null);
 
+  const [selectedPlant, setSelectedPlant] = useState<{
+    name: string;
+    image: string;
+    latitude: string;
+    longitude: string;
+    description: string;
+  } | null>(null);
+  
+  // A ref to store all invasive plant markers (so we can remove them later).
+  const plantMarkersRef = useRef<PlantMarkerData[]>([]);
   // Listen for auth state changes.
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -349,6 +377,42 @@ const MapPage: React.FC = () => {
       });
     };
   }, [initMap]);
+
+  const fetchPlantMarkers = useCallback(async () => {
+    if (!mapInstanceRef.current || !window.google?.maps) return;
+    try {
+      const response = await axios.get('/get_markers');
+      const markersData = response.data;
+      markersData.forEach((markerData: any) => {
+        const { key, vars } = markerData;
+        const { lat, lng, image, desc } = vars;
+        // Ensure we have valid numbers for coordinates.
+        const position = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        const marker = new window.google!.maps.Marker({
+          position,
+          map: mapInstanceRef.current,
+          title: key,
+          // A custom green marker icon; adjust as desired.
+          icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+        });
+        // When clicked, display the PlantCard with details.
+        marker.addListener('click', () => {
+          setSelectedPlant({
+            name: key,
+            image: image,
+            latitude: lat.toString(),
+            longitude: lng.toString(),
+            description: desc,
+          });
+        });
+        plantMarkersRef.current.push({ key, lat, lng, image, desc, marker });
+      });
+    } catch (error: any) {
+      console.error('Error fetching plant markers:', error);
+      setError('Error fetching plant markers: ' + error.message);
+    }
+  }, []);
+
 
   return (
     <>
