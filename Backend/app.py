@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_from_directory
 from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -10,7 +10,7 @@ from io import BytesIO
 from PIL import Image
 import os 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='out', static_url_path='/')
 CORS(app)
 
 from firebase_client import db
@@ -22,11 +22,7 @@ def index():
     (which might be used for non-invasive markers or different mapping data)
     and pass them to the template.
     """
-    markers = rp.getMarkers()
-    return jsonify({
-        "message": "Welcome to the Flask API",
-        "markers": markers
-    })
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/create_report', methods=['POST'])
 def create_report():

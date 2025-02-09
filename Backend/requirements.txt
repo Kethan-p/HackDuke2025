@@ -1,3 +1,7 @@
+Flask
+flask-cors
+firebase-admin
 requests
-dotenv
+Pillow
 openai
+python-dotenv
